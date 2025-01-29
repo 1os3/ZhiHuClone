@@ -1,0 +1,38 @@
+@model IEnumerable<ZhihuClone.Core.Models.Answer>
+
+@if (!Model.Any())
+{
+    <div class="text-center text-muted my-5">
+        <i class="fas fa-comment-alt fa-3x mb-3"></i>
+        <p>还没有回答任何问题</p>
+    </div>
+}
+else
+{
+    <div class="list-group list-group-flush">
+        @foreach (var answer in Model)
+        {
+            <div class="list-group-item">
+                <div class="d-flex w-100 justify-content-between">
+                    <h5 class="mb-1">
+                        <a href="/question/@answer.QuestionId" class="text-decoration-none text-dark">@answer.Question?.Title</a>
+                    </h5>
+                    <small class="text-muted">@answer.CreatedAt.ToString("yyyy-MM-dd")</small>
+                </div>
+                <p class="mb-1 text-muted">@(answer.Content?.Length > 100 ? answer.Content[..100] + "..." : answer.Content)</p>
+                <div class="d-flex justify-content-between align-items-center">
+                    <small class="text-muted">
+                        <i class="fas fa-thumbs-up"></i> @answer.LikeCount
+                        <i class="fas fa-comment ms-2"></i> @answer.CommentCount
+                        @if (answer.IsAccepted)
+                        {
+                            <span class="badge bg-success ms-2">
+                                <i class="fas fa-check"></i> 已采纳
+                            </span>
+                        }
+                    </small>
+                </div>
+            </div>
+        }
+    </div>
+} 

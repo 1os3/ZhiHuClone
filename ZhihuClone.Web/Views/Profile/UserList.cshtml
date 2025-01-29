@@ -1,0 +1,97 @@
+@model ZhihuClone.Web.Models.User.UserListViewModel
+@{
+    ViewData["Title"] = Model.PageTitle;
+}
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">@Model.PageTitle</h5>
+                        <a href="/u/@Model.Username" class="text-decoration-none">返回个人主页</a>
+                    </div>
+                </div>
+
+                <div class="card-body">
+                    @if (Model.Users != null && Model.Users.Any())
+                    {
+                        <div class="list-group">
+                            @foreach (var user in Model.Users)
+                            {
+                                <div class="list-group-item">
+                                    <div class="d-flex align-items-center">
+                                        <img src="@(string.IsNullOrEmpty(user.Avatar) ? "/images/default-avatar.png" : user.Avatar)" 
+                                             class="rounded-circle me-3" style="width: 50px; height: 50px;" 
+                                             alt="@user.Username" />
+                                        
+                                        <div class="flex-grow-1">
+                                            <h5 class="mb-1">
+                                                <a href="/u/@user.Username" class="text-decoration-none text-dark">
+                                                    @user.Nickname
+                                                </a>
+                                            </h5>
+                                            <p class="mb-1 text-muted">@user.Bio</p>
+                                            <small class="text-muted">
+                                                @user.FollowerCount 个关注者 · @user.PostCount 篇文章
+                                            </small>
+                                        </div>
+                                        
+                                        @if (!Model.IsCurrentUser)
+                                        {
+                                            <button class="btn @(user.IsFollowing ? "btn-outline-primary" : "btn-primary") follow-btn" 
+                                                    data-username="@user.Username">
+                                                @(user.IsFollowing ? "取消关注" : "关注")
+                                            </button>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center text-muted py-5">
+                            <i class="bi bi-people" style="font-size: 3rem;"></i>
+                            <p class="mt-3">暂无用户</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            $('.follow-btn').click(async function() {
+                const button = $(this);
+                try {
+                    const response = await fetch(`/u/${button.data('username')}/follow`, {
+                        method: 'POST',
+                        headers: {
+                            'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.isFollowing) {
+                            button.removeClass('btn-primary').addClass('btn-outline-primary');
+                            button.text('取消关注');
+                        } else {
+                            button.removeClass('btn-outline-primary').addClass('btn-primary');
+                            button.text('关注');
+                        }
+                    }
+                } catch (error) {
+                    console.error('关注操作失败:', error);
+                }
+            });
+        });
+    </script>
+}
+
+@Html.AntiForgeryToken() 

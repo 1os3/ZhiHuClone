@@ -1,0 +1,100 @@
+@model ZhihuClone.Web.Models.User.NotificationSettingsViewModel
+@{
+    ViewData["Title"] = "消息通知";
+}
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="list-group list-group-flush">
+                    <a href="/settings" class="list-group-item list-group-item-action">个人资料</a>
+                    <a href="/settings/security" class="list-group-item list-group-item-action">账号安全</a>
+                    <a href="/settings/privacy" class="list-group-item list-group-item-action">隐私设置</a>
+                    <a href="/settings/notification" class="list-group-item list-group-item-action active">消息通知</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-9">
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h5 class="card-title mb-0">消息通知</h5>
+                </div>
+
+                <div class="card-body">
+                    <form id="notificationForm" method="post" asp-action="SaveNotification">
+                        @Html.AntiForgeryToken()
+                        <div class="alert alert-success" id="successMessage" style="display: none;"></div>
+                        <div class="alert alert-danger" id="errorMessage" style="display: none;"></div>
+
+                        <h6 class="mb-3">通知方式</h6>
+                        <div class="mb-4">
+                            <div class="form-check mb-2">
+                                <input asp-for="EmailNotification" class="form-check-input" type="checkbox">
+                                <label asp-for="EmailNotification" class="form-check-label">邮件通知</label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input asp-for="PushNotification" class="form-check-input" type="checkbox">
+                                <label asp-for="PushNotification" class="form-check-label">浏览器推送</label>
+                            </div>
+                        </div>
+
+                        <h6 class="mb-3">通知类型</h6>
+                        <div class="mb-4">
+                            <div class="form-check mb-2">
+                                <input asp-for="LikeNotification" class="form-check-input" type="checkbox">
+                                <label asp-for="LikeNotification" class="form-check-label">点赞通知</label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input asp-for="CommentNotification" class="form-check-input" type="checkbox">
+                                <label asp-for="CommentNotification" class="form-check-label">评论通知</label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input asp-for="FollowNotification" class="form-check-input" type="checkbox">
+                                <label asp-for="FollowNotification" class="form-check-label">关注通知</label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input asp-for="SystemNotification" class="form-check-input" type="checkbox">
+                                <label asp-for="SystemNotification" class="form-check-label">系统通知</label>
+                            </div>
+                        </div>
+
+                        <div class="text-end">
+                            <button type="submit" class="btn btn-primary">保存设置</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            $('#notificationForm').on('submit', function (e) {
+                e.preventDefault();
+                
+                var form = $(this);
+                $.ajax({
+                    url: '@Url.Action("SaveNotification", "Profile")',
+                    type: 'POST',
+                    data: form.serialize(),
+                    success: function (response) {
+                        $('#errorMessage').hide();
+                        $('#successMessage').text('设置已保存').show();
+                        setTimeout(function() {
+                            $('#successMessage').fadeOut();
+                        }, 3000);
+                    },
+                    error: function (xhr) {
+                        var error = xhr.responseJSON;
+                        $('#successMessage').hide();
+                        $('#errorMessage').text(error.error || '保存失败，请重试').show();
+                    }
+                });
+            });
+        });
+    </script>
+} 

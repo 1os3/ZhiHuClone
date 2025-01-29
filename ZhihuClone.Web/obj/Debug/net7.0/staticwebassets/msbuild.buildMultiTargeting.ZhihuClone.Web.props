@@ -1,0 +1,3 @@
+﻿<Project>
+  <Import Project="..\build\ZhihuClone.Web.props" />
+</Project>

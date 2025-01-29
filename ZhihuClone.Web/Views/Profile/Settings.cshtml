@@ -1,0 +1,129 @@
+@model ZhihuClone.Web.Models.User.UserProfileViewModel
+@{
+    ViewData["Title"] = "个人设置";
+}
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="list-group list-group-flush">
+                    <a href="/settings" class="list-group-item list-group-item-action active">个人资料</a>
+                    <a href="/settings/security" class="list-group-item list-group-item-action">账号安全</a>
+                    <a href="/settings/privacy" class="list-group-item list-group-item-action">隐私设置</a>
+                    <a href="/settings/notification" class="list-group-item list-group-item-action">消息通知</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-9">
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h5 class="card-title mb-0">个人资料</h5>
+                </div>
+
+                <div class="card-body">
+                    <form asp-action="Settings" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" asp-for="Id" />
+                        <input type="hidden" asp-for="UserName" />
+
+                        <div class="mb-3">
+                            <label asp-for="Nickname" class="form-label">昵称</label>
+                            <input asp-for="Nickname" class="form-control" />
+                            <span asp-validation-for="Nickname" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Bio" class="form-label">个人简介</label>
+                            <textarea asp-for="Bio" class="form-control" rows="3"></textarea>
+                            <span asp-validation-for="Bio" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Company" class="form-label">公司</label>
+                            <input asp-for="Company" class="form-control" />
+                            <span asp-validation-for="Company" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Title" class="form-label">职位</label>
+                            <input asp-for="Title" class="form-control" />
+                            <span asp-validation-for="Title" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Location" class="form-label">所在地</label>
+                            <input asp-for="Location" class="form-control" />
+                            <span asp-validation-for="Location" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Website" class="form-label">个人网站</label>
+                            <input asp-for="Website" class="form-control" />
+                            <span asp-validation-for="Website" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">头像</label>
+                            <div class="d-flex align-items-center">
+                                <img src="@(string.IsNullOrEmpty(Model.Avatar) ? "/images/default-avatar.png" : Model.Avatar)" 
+                                     class="rounded-circle me-3" style="width: 64px; height: 64px;" alt="@Model.Nickname" />
+                                <button type="button" class="btn btn-outline-primary btn-sm" onclick="uploadAvatar()">
+                                    更换头像
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="text-end">
+                            <button type="submit" class="btn btn-primary">保存修改</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function uploadAvatar() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.onchange = async function() {
+                if (!input.files || input.files.length === 0) return;
+
+                const file = input.files[0];
+                const formData = new FormData();
+                formData.append('file', file);
+
+                try {
+                    const response = await fetch('/settings/avatar', {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                        }
+                    });
+
+                    if (!response.ok) {
+                        const error = await response.json();
+                        alert(error.error || '上传失败，请重试');
+                        return;
+                    }
+
+                    const result = await response.json();
+                    // 更新页面上的头像
+                    document.querySelectorAll('img[alt="@Model.Nickname"]').forEach(img => {
+                        img.src = result.avatarUrl;
+                    });
+                } catch (error) {
+                    console.error('上传失败:', error);
+                    alert('上传失败，请重试');
+                }
+            };
+            input.click();
+        }
+    </script>
+} 

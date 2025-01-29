@@ -1,0 +1,272 @@
+﻿@using ZhihuClone.Core.Models.Content
+@model ZhihuClone.Web.Models.HomeViewModel
+
+@{
+    ViewData["Title"] = "知乎克隆 - 首页";
+}
+
+<div class="container">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="posts">
+                @foreach (var post in Model.Posts)
+                {
+                    <div class="post-item">
+                        <div class="post-header">
+                            <div class="post-meta">
+                                <img src="@post.Author.Avatar" alt="@post.Author.UserName" class="avatar" />
+                                <span class="username">@post.Author.UserName</span>
+                                <span class="time">@post.CreatedAt.ToString("yyyy-MM-dd HH:mm")</span>
+                            </div>
+                        </div>
+                        <div class="post-content">
+                            <h3 class="title">
+                                <a href="/post/@post.Id">@post.Title</a>
+                            </h3>
+                            <p class="summary">@post.Summary</p>
+                            @if (post.Topics.Any())
+                            {
+                                <div class="topics">
+                                    @foreach (var topic in post.Topics)
+                                    {
+                                        <a href="/topic/@topic.Id" class="topic">@topic.Name</a>
+                                    }
+                                </div>
+                            }
+                        </div>
+                        <div class="post-footer">
+                            <div class="post-stats">
+                                <span class="me-3">
+                                    <i class="far fa-eye"></i>
+                                    @post.ViewCount 浏览
+                                </span>
+                                <span class="me-3">
+                                    <i class="far fa-thumbs-up"></i>
+                                    @post.LikeCount 点赞
+                                </span>
+                                <span>
+                                    <i class="far fa-comment"></i>
+                                    @post.CommentCount 评论
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            @if (Model.TotalPages > 1)
+            {
+                <div class="pagination">
+                    @if (Model.CurrentPage > 1)
+                    {
+                        <a href="/?page=@(Model.CurrentPage - 1)" class="prev">上一页</a>
+                    }
+                    @for (var i = 1; i <= Model.TotalPages; i++)
+                    {
+                        if (i == Model.CurrentPage)
+                        {
+                            <span class="current">@i</span>
+                        }
+                        else
+                        {
+                            <a href="/?page=@i">@i</a>
+                        }
+                    }
+                    @if (Model.CurrentPage < Model.TotalPages)
+                    {
+                        <a href="/?page=@(Model.CurrentPage + 1)" class="next">下一页</a>
+                    }
+                </div>
+            }
+        </div>
+
+        <div class="col-md-4">
+            <div class="hot-topics">
+                <h3>热门话题</h3>
+                @foreach (var topic in Model.HotTopics)
+                {
+                    <div class="topic-item">
+                        <a href="/topic/@topic.Id" class="topic-name">@topic.Name</a>
+                        <span class="topic-stats">
+                            @topic.Posts.Count 篇文章
+                        </span>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 夜间模式切换按钮 -->
+<button class="dark-mode-toggle" id="darkModeToggle" type="button" data-bs-toggle="tooltip" title="切换夜间模式">
+    <i class="bi bi-moon-stars"></i>
+</button>
+
+@section Scripts {
+    <script>
+        // 初始化工具提示
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+
+        // 点赞功能
+        document.querySelectorAll('.like-btn').forEach(btn => {
+            btn.addEventListener('click', async function() {
+                if (!@(User.Identity?.IsAuthenticated ?? false).ToString().ToLower()) {
+                    window.location.href = '@Url.Action("Login", "Account")';
+                    return;
+                }
+
+                const postId = this.dataset.postId;
+                const isLiked = this.dataset.liked === 'true';
+                const url = isLiked ? `/Post/Unlike/${postId}` : `/Post/Like/${postId}`;
+                
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        const result = await response.json();
+                        if (result.success) {
+                            const icon = this.querySelector('i');
+                            const countSpan = this.querySelector('.like-count');
+                            
+                            this.dataset.liked = (!isLiked).toString();
+                            icon.className = `bi bi-heart${!isLiked ? '-fill' : ''}`;
+                            this.className = `btn btn-link p-0 me-3 like-btn ${!isLiked ? 'text-danger' : 'text-dark'}`;
+                            countSpan.textContent = result.likeCount;
+
+                            // 更新工具提示
+                            const tooltip = bootstrap.Tooltip.getInstance(this);
+                            if (tooltip) {
+                                this.setAttribute('title', !isLiked ? '取消点赞' : '点赞');
+                                tooltip.dispose();
+                                new bootstrap.Tooltip(this);
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                }
+            });
+        });
+
+        // 关注功能
+        document.querySelectorAll('.follow-btn').forEach(btn => {
+            btn.addEventListener('click', async function(e) {
+                e.preventDefault();
+                
+                if (!@(User.Identity?.IsAuthenticated ?? false).ToString().ToLower()) {
+                    window.location.href = '@Url.Action("Login", "Account")';
+                    return;
+                }
+
+                const userId = this.dataset.userId;
+                const isFollowing = this.dataset.following === 'true';
+                const url = isFollowing ? `/User/Unfollow/${userId}` : `/User/Follow/${userId}`;
+                
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        const result = await response.json();
+                        if (result.success) {
+                            this.dataset.following = (!isFollowing).toString();
+                            this.innerHTML = isFollowing ? 
+                                '<i class="bi bi-plus"></i> 关注' : 
+                                '<i class="bi bi-check2"></i> 已关注';
+                            this.classList.toggle('btn-outline-primary');
+                            this.classList.toggle('btn-primary');
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                }
+            });
+        });
+
+        // 分享功能
+        document.querySelectorAll('.share-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const postId = this.dataset.postId;
+                const url = `${window.location.origin}/post/${postId}`;
+                
+                if (navigator.share) {
+                    navigator.share({
+                        title: document.title,
+                        url: url
+                    });
+                } else {
+                    navigator.clipboard.writeText(url).then(() => {
+                        const tooltip = bootstrap.Tooltip.getInstance(this);
+                        const originalTitle = this.getAttribute('title');
+                        
+                        if (tooltip) {
+                            this.setAttribute('title', '链接已复制');
+                            tooltip.dispose();
+                            new bootstrap.Tooltip(this).show();
+                            
+                            setTimeout(() => {
+                                this.setAttribute('title', originalTitle);
+                                tooltip.dispose();
+                                new bootstrap.Tooltip(this);
+                            }, 2000);
+                        }
+                    });
+                }
+            });
+        });
+
+        // 收藏功能
+        document.querySelectorAll('.collect-btn').forEach(btn => {
+            btn.addEventListener('click', async function() {
+                if (!@(User.Identity?.IsAuthenticated ?? false).ToString().ToLower()) {
+                    window.location.href = '@Url.Action("Login", "Account")';
+                    return;
+                }
+
+                const postId = this.dataset.postId;
+                const isCollected = this.dataset.collected === 'true';
+                const url = isCollected ? `/Post/Uncollect/${postId}` : `/Post/Collect/${postId}`;
+                
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        const result = await response.json();
+                        if (result.success) {
+                            this.dataset.collected = (!isCollected).toString();
+                            const icon = this.querySelector('i');
+                            icon.className = `bi bi-bookmark${!isCollected ? '-fill' : ''}`;
+                            
+                            // 更新工具提示
+                            const tooltip = bootstrap.Tooltip.getInstance(this);
+                            if (tooltip) {
+                                this.setAttribute('title', !isCollected ? '取消收藏' : '收藏');
+                                tooltip.dispose();
+                                new bootstrap.Tooltip(this);
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                }
+            });
+        });
+    </script>
+}

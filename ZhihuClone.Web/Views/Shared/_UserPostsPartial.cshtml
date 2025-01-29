@@ -1,0 +1,40 @@
+@model IEnumerable<ZhihuClone.Core.Models.Content.Post>
+
+@if (!Model.Any())
+{
+    <div class="text-center text-muted my-5">
+        <i class="fas fa-file-alt fa-3x mb-3"></i>
+        <p>还没有发布任何文章</p>
+    </div>
+}
+else
+{
+    <div class="list-group list-group-flush">
+        @foreach (var post in Model)
+        {
+            <a href="/post/@post.Id" class="list-group-item list-group-item-action">
+                <div class="d-flex w-100 justify-content-between">
+                    <h5 class="mb-1">@post.Title</h5>
+                    <small class="text-muted">@post.CreatedAt.ToString("yyyy-MM-dd")</small>
+                </div>
+                <p class="mb-1 text-muted">@(post.Content?.Length > 100 ? post.Content[..100] + "..." : post.Content)</p>
+                <div class="d-flex justify-content-between align-items-center">
+                    <small class="text-muted">
+                        <i class="fas fa-thumbs-up"></i> @post.LikeCount
+                        <i class="fas fa-comment ms-2"></i> @post.CommentCount
+                        <i class="fas fa-eye ms-2"></i> @post.ViewCount
+                    </small>
+                    @if (post.Topics != null && post.Topics.Any())
+                    {
+                        <div>
+                            @foreach (var topic in post.Topics)
+                            {
+                                <span class="badge bg-light text-dark me-1">@topic.Name</span>
+                            }
+                        </div>
+                    }
+                </div>
+            </a>
+        }
+    </div>
+} 

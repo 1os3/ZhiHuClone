@@ -1,0 +1,273 @@
+@model List<ZhihuClone.Core.Models.Notification.Notification>
+@{
+    ViewData["Title"] = "我的通知";
+}
+
+<div class="container">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="notifications-page">
+                <div class="notifications-header">
+                    <h1>我的通知</h1>
+                    <div class="notifications-actions">
+                        <button class="btn btn-outline-primary" id="markAllAsRead">全部标记为已读</button>
+                        <button class="btn btn-outline-danger" id="clearAll">清空通知</button>
+                    </div>
+                </div>
+
+                <div class="notifications-list">
+                    @if (Model.Any())
+                    {
+                        foreach (var notification in Model)
+                        {
+                            <div class="notification-item @(notification.IsRead ? "" : "unread")" data-id="@notification.Id">
+                                <div class="notification-content">
+                                    @if (notification.Sender != null)
+                                    {
+                                        <a href="/users/@notification.SenderId" class="user-link">@notification.Sender.UserName</a>
+                                    }
+                                    <span>@notification.Content</span>
+                                </div>
+                                <div class="notification-meta">
+                                    <span class="notification-time" data-time="@notification.CreatedAt.ToString("O")">
+                                        @notification.CreatedAt.ToString("yyyy-MM-dd HH:mm")
+                                    </span>
+                                    @if (!notification.IsRead)
+                                    {
+                                        <span class="unread-mark">未读</span>
+                                    }
+                                </div>
+                                <a href="@notification.Link" class="notification-link"></a>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="notifications-empty">
+                            <i class="fas fa-bell-slash"></i>
+                            <p>暂无通知</p>
+                        </div>
+                    }
+                </div>
+
+                <div class="notifications-pagination">
+                    <!-- 分页控件将通过JavaScript动态加载 -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.notifications-page {
+    padding: 24px 0;
+}
+
+.notifications-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.notifications-header h1 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 600;
+}
+
+.notifications-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.notifications-list {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.notification-item {
+    padding: 16px;
+    border-bottom: 1px solid #f0f0f0;
+    position: relative;
+}
+
+.notification-item:last-child {
+    border-bottom: none;
+}
+
+.notification-content {
+    margin-bottom: 8px;
+    font-size: 15px;
+}
+
+.user-link {
+    color: #175199;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.user-link:hover {
+    text-decoration: underline;
+}
+
+.notification-meta {
+    font-size: 13px;
+    color: #8590a6;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.unread-mark {
+    color: #f52443;
+    font-weight: 500;
+}
+
+.notification-link {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+}
+
+.notifications-empty {
+    padding: 48px 0;
+    text-align: center;
+    color: #8590a6;
+}
+
+.notifications-empty i {
+    font-size: 48px;
+    margin-bottom: 16px;
+}
+
+.notifications-empty p {
+    margin: 0;
+    font-size: 15px;
+}
+
+.notifications-pagination {
+    margin-top: 24px;
+    display: flex;
+    justify-content: center;
+}
+
+/* 深色模式样式 */
+@@media (prefers-color-scheme: dark) {
+    .notifications-list {
+        background: #1a1a1a;
+        border: 1px solid #2d2d2d;
+    }
+
+    .notification-item {
+        border-bottom-color: #2d2d2d;
+    }
+
+    .notification-item:hover {
+        background-color: #2d2d2d;
+    }
+
+    .notification-item.unread {
+        background-color: #213547;
+    }
+
+    .notification-item.unread:hover {
+        background-color: #2a4257;
+    }
+
+    .user-link {
+        color: #409eff;
+    }
+}
+</style>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // 更新时间显示
+            function updateTimeDisplay() {
+                $('.notification-time').each(function() {
+                    const timestamp = $(this).data('time');
+                    const date = new Date(timestamp);
+                    $(this).text(getRelativeTimeString(date));
+                });
+            }
+
+            // 获取相对时间字符串
+            function getRelativeTimeString(date) {
+                const now = new Date();
+                const diff = now - date;
+                const seconds = Math.floor(diff / 1000);
+                const minutes = Math.floor(seconds / 60);
+                const hours = Math.floor(minutes / 60);
+                const days = Math.floor(hours / 24);
+
+                if (seconds < 60) {
+                    return '刚刚';
+                } else if (minutes < 60) {
+                    return `${minutes}分钟前`;
+                } else if (hours < 24) {
+                    return `${hours}小时前`;
+                } else if (days < 30) {
+                    return `${days}天前`;
+                } else {
+                    return date.toLocaleDateString();
+                }
+            }
+
+            // 标记单个通知为已读
+            function markAsRead(notificationId) {
+                $.post(`/api/notifications/${notificationId}/read`)
+                    .done(function(response) {
+                        if (response.success) {
+                            $(`.notification-item[data-id="${notificationId}"]`)
+                                .removeClass('unread')
+                                .find('.unread-mark')
+                                .remove();
+                        }
+                    });
+            }
+
+            // 标记所有通知为已读
+            $('#markAllAsRead').click(function() {
+                $.post('/api/notifications/read-all')
+                    .done(function(response) {
+                        if (response.success) {
+                            $('.notification-item.unread')
+                                .removeClass('unread')
+                                .find('.unread-mark')
+                                .remove();
+                        }
+                    });
+            });
+
+            // 清空所有通知
+            $('#clearAll').click(function() {
+                if (confirm('确定要清空所有通知吗？此操作不可恢复。')) {
+                    $.ajax({
+                        url: '/api/notifications',
+                        method: 'DELETE'
+                    }).done(function(response) {
+                        if (response.success) {
+                            location.reload();
+                        }
+                    });
+                }
+            });
+
+            // 点击通知时标记为已读
+            $('.notification-item.unread').click(function() {
+                const notificationId = $(this).data('id');
+                markAsRead(notificationId);
+            });
+
+            // 初始化
+            updateTimeDisplay();
+            // 每分钟更新一次时间显示
+            setInterval(updateTimeDisplay, 60000);
+        });
+    </script>
+} 

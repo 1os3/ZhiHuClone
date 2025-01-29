@@ -1,0 +1,70 @@
+@using ZhihuClone.Core.Models
+@model List<Answer>
+
+@if (Model.Any())
+{
+    <div class="user-answers">
+        @foreach (var answer in Model)
+        {
+            <div class="answer-card mb-4">
+                <div class="question-title">
+                    <h5><a href="/question/@answer.QuestionId">@answer.Question.Title</a></h5>
+                </div>
+                <div class="answer-content">
+                    @Html.Raw(answer.Content.Length > 200 ? answer.Content.Substring(0, 200) + "..." : answer.Content)
+                </div>
+                <div class="answer-footer">
+                    <span class="like-count">
+                        <i class="bi bi-heart"></i>
+                        @answer.LikeCount
+                    </span>
+                    <span class="comment-count">
+                        <i class="bi bi-chat"></i>
+                        @answer.CommentCount
+                    </span>
+                    <span class="created-time">
+                        <i class="bi bi-clock"></i>
+                        @answer.CreatedAt.ToString("yyyy-MM-dd HH:mm")
+                    </span>
+                </div>
+            </div>
+        }
+    </div>
+
+    @if (Model.Count >= 10)
+    {
+        <div class="text-center mt-4">
+            <button class="btn btn-outline-primary" onclick="loadMoreAnswers()">
+                加载更多
+            </button>
+        </div>
+    }
+}
+else
+{
+    <div class="text-center text-muted py-5">
+        <i class="fas fa-comment-alt fa-3x mb-3"></i>
+        <p>暂无回答</p>
+    </div>
+}
+
+<script>
+    document.querySelectorAll('.show-more').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const content = this.closest('.answer-content');
+            const preview = content.querySelector('.content-preview');
+            const full = content.querySelector('.content-full');
+            
+            if (preview.classList.contains('d-none')) {
+                preview.classList.remove('d-none');
+                full.classList.add('d-none');
+                this.innerHTML = '显示全部 <i class="fas fa-chevron-down"></i>';
+            } else {
+                preview.classList.add('d-none');
+                full.classList.remove('d-none');
+                this.innerHTML = '收起 <i class="fas fa-chevron-up"></i>';
+            }
+        });
+    });
+</script> 

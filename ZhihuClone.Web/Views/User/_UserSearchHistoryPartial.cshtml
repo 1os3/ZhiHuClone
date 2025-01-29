@@ -1,0 +1,120 @@
+@model List<ZhihuClone.Core.Models.Search.SearchHistory>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h6 class="mb-0">搜索历史</h6>
+    <button class="btn btn-link text-danger p-0" onclick="clearSearchHistory()">
+        <i class="fas fa-trash-alt"></i> 清空历史
+    </button>
+</div>
+
+@if (Model.Any())
+{
+    <div class="list-group">
+        @foreach (var history in Model)
+        {
+            <div class="list-group-item list-group-item-action">
+                <div class="d-flex w-100 justify-content-between align-items-center">
+                    <div>
+                        <a href="/search?q=@Uri.EscapeDataString(history.Keyword)" 
+                           class="text-decoration-none text-dark">
+                            @history.Keyword
+                        </a>
+                        <small class="text-muted d-block">
+                            搜索 @history.SearchCount 次
+                        </small>
+                    </div>
+                    <div class="text-end">
+                        <small class="text-muted d-block">
+                            @history.LastSearchedAt.ToString("yyyy-MM-dd HH:mm")
+                        </small>
+                        <button class="btn btn-link btn-sm text-danger p-0" 
+                                onclick="deleteSearchHistory(@history.Id)">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    @if (Model.Count >= 10)
+    {
+        <div class="text-center mt-4">
+            <button class="btn btn-outline-primary" onclick="loadMoreSearchHistory()">
+                加载更多
+            </button>
+        </div>
+    }
+}
+else
+{
+    <div class="text-center text-muted py-5">
+        <i class="fas fa-history fa-3x mb-3"></i>
+        <p>暂无搜索历史</p>
+    </div>
+}
+
+<script>
+    function clearSearchHistory() {
+        if (confirm('确定要清空搜索历史吗？此操作不可恢复。')) {
+            fetch('/api/user/search-history', {
+                method: 'DELETE'
+            }).then(response => {
+                if (response.ok) {
+                    location.reload();
+                }
+            });
+        }
+    }
+
+    function deleteSearchHistory(id) {
+        fetch(`/api/user/search-history/${id}`, {
+            method: 'DELETE'
+        }).then(response => {
+            if (response.ok) {
+                location.reload();
+            }
+        });
+    }
+
+    function loadMoreSearchHistory() {
+        const currentCount = document.querySelectorAll('.list-group-item').length;
+        fetch(`/api/user/search-history?skip=${currentCount}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.length > 0) {
+                    const container = document.querySelector('.list-group');
+                    data.forEach(history => {
+                        container.insertAdjacentHTML('beforeend', `
+                            <div class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between align-items-center">
+                                    <div>
+                                        <a href="/search?q=${encodeURIComponent(history.keyword)}" 
+                                           class="text-decoration-none text-dark">
+                                            ${history.keyword}
+                                        </a>
+                                        <small class="text-muted d-block">
+                                            搜索 ${history.searchCount} 次
+                                        </small>
+                                    </div>
+                                    <div class="text-end">
+                                        <small class="text-muted d-block">
+                                            ${new Date(history.lastSearchedAt).toLocaleString()}
+                                        </small>
+                                        <button class="btn btn-link btn-sm text-danger p-0" 
+                                                onclick="deleteSearchHistory(${history.id})">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        `);
+                    });
+
+                    if (data.length < 10) {
+                        document.querySelector('.text-center.mt-4').remove();
+                    }
+                }
+            });
+    }
+</script> 

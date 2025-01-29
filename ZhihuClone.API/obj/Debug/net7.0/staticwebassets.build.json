@@ -1,0 +1,12 @@
+{
+  "Version": 1,
+  "Hash": "6aeexeLPAVQSMRhfFiKvFIi2ahLPV9tYQo7qYKlEwPU=",
+  "Source": "ZhihuClone.API",
+  "BasePath": "_content/ZhihuClone.API",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [],
+  "Assets": [],
+  "Endpoints": []
+}

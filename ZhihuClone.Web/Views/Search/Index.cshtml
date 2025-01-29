@@ -1,0 +1,158 @@
+@model ZhihuClone.Core.Models.Search.SearchResult
+
+@{
+    ViewData["Title"] = "搜索结果";
+    var query = Context.Request.Query["q"].ToString();
+}
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title mb-4">搜索结果</h5>
+                    @if (Model.Posts == null || !Model.Posts.Any())
+                    {
+                        <div class="alert alert-info">
+                            没有找到相关内容
+                        </div>
+                    }
+                    else
+                    {
+                        foreach (var post in Model.Posts)
+                        {
+                            <div class="search-result mb-4">
+                                <h5 class="mb-2">
+                                    <a href="/post/@post.Id" class="text-dark">@Html.Raw(post.Title)</a>
+                                </h5>
+                                <div class="d-flex align-items-center text-muted small mb-2">
+                                    <a href="/user/@post.Author.Id" class="text-muted mr-2">
+                                        @post.Author.Nickname
+                                    </a>
+                                    <span class="mx-1">·</span>
+                                    <span>@post.CreatedAt.ToString("yyyy-MM-dd")</span>
+                                    @if (post.Topics != null && post.Topics.Any())
+                                    {
+                                        <span class="mx-1">·</span>
+                                        foreach (var topic in post.Topics)
+                                        {
+                                            <a href="/topic/@topic.Id" class="text-muted mx-1">@topic.Name</a>
+                                        }
+                                    }
+                                </div>
+                                <p class="text-muted mb-0">@Html.Raw(post.Content)</p>
+                            </div>
+                        }
+                    }
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title mb-4">搜索过滤</h5>
+                    <form method="get">
+                        <div class="form-group">
+                            <label for="type">内容类型</label>
+                            <select class="form-control" id="type" name="type">
+                                <option value="">全部</option>
+                                <option value="post">文章</option>
+                                <option value="answer">回答</option>
+                                <option value="user">用户</option>
+                                <option value="topic">话题</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="sort">排序方式</label>
+                            <select class="form-control" id="sort" name="sort">
+                                <option value="relevance">相关度</option>
+                                <option value="time">最新</option>
+                                <option value="score">评分</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-block">应用过滤</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // 加载热门搜索
+        async function loadHotSearches() {
+            try {
+                const response = await fetch('/Search/HotSearches');
+                if (response.ok) {
+                    const searches = await response.json();
+                    const container = document.getElementById('hot-searches');
+                    container.innerHTML = '';
+                    
+                    searches.forEach((search, index) => {
+                        const link = document.createElement('a');
+                        link.href = `/Search?q=${encodeURIComponent(search)}`;
+                        link.className = 'text-decoration-none d-block mb-2';
+                        link.innerHTML = `
+                            <span class="me-2 ${index < 3 ? 'text-danger' : 'text-muted'}">${index + 1}</span>
+                            <span class="text-dark">${search}</span>
+                        `;
+                        container.appendChild(link);
+                    });
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        // 加载搜索历史
+        async function loadSearchHistory() {
+            try {
+                const response = await fetch('/Search/History');
+                if (response.ok) {
+                    const history = await response.json();
+                    const container = document.getElementById('search-history');
+                    container.innerHTML = '';
+                    
+                    if (history.length > 0) {
+                        history.forEach(search => {
+                            const link = document.createElement('a');
+                            link.href = `/Search?q=${encodeURIComponent(search)}`;
+                            link.className = 'text-decoration-none d-block mb-2';
+                            link.innerHTML = `<span class="text-dark">${search}</span>`;
+                            container.appendChild(link);
+                        });
+                    } else {
+                        container.innerHTML = '<p class="text-muted mb-0">暂无搜索历史</p>';
+                    }
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        // 清空搜索历史
+        document.getElementById('clear-history').addEventListener('click', async function() {
+            if (confirm('确定要清空搜索历史吗？')) {
+                try {
+                    const response = await fetch('/Search/ClearHistory', {
+                        method: 'POST'
+                    });
+                    
+                    if (response.ok) {
+                        const result = await response.json();
+                        if (result.success) {
+                            loadSearchHistory();
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                }
+            }
+        });
+
+        // 页面加载时获取数据
+        loadHotSearches();
+        loadSearchHistory();
+    </script>
+} 

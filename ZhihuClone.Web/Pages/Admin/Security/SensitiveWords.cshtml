@@ -1,0 +1,503 @@
+@page
+@model ZhihuClone.Web.Pages.Admin.Security.SensitiveWordsModel
+@{
+    ViewData["Title"] = "敏感词管理";
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 text-gray-800">敏感词管理</h1>
+        <div>
+            <button class="btn btn-success mr-2" onclick="importWords()">
+                <i class="fas fa-file-import"></i> 导入
+            </button>
+            <button class="btn btn-primary" data-toggle="modal" data-target="#addWordModal">
+                <i class="fas fa-plus"></i> 添加敏感词
+            </button>
+        </div>
+    </div>
+
+    <!-- 搜索和过滤 -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">搜索和过滤</h6>
+        </div>
+        <div class="card-body">
+            <form method="get">
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <label for="word">敏感词</label>
+                        <input type="text" class="form-control" id="word" name="word" 
+                               value="@Model.SearchParams.Word" placeholder="输入敏感词">
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label for="category">分类</label>
+                        <select class="form-control" id="category" name="category">
+                            <option value="">全部</option>
+                            @foreach (var category in Model.Categories)
+                            {
+                                <option value="@category" @(Model.SearchParams.Category == category ? "selected" : "")>
+                                    @category
+                                </option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label for="level">级别</label>
+                        <select class="form-control" id="level" name="level">
+                            <option value="">全部</option>
+                            <option value="1" @(Model.SearchParams.Level == 1 ? "selected" : "")>低</option>
+                            <option value="2" @(Model.SearchParams.Level == 2 ? "selected" : "")>中</option>
+                            <option value="3" @(Model.SearchParams.Level == 3 ? "selected" : "")>高</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label>&nbsp;</label>
+                        <div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-search"></i> 搜索
+                            </button>
+                            <a href="/Admin/Security/SensitiveWords" class="btn btn-secondary ml-2">
+                                <i class="fas fa-redo"></i> 重置
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 敏感词列表 -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">敏感词列表</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>敏感词</th>
+                            <th>分类</th>
+                            <th>级别</th>
+                            <th>是否正则</th>
+                            <th>状态</th>
+                            <th>匹配次数</th>
+                            <th>最后匹配</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var word in Model.SensitiveWords)
+                        {
+                            <tr>
+                                <td>@word.Word</td>
+                                <td>@word.Category</td>
+                                <td>
+                                    @switch (word.Level)
+                                    {
+                                        case 1:
+                                            <span class="badge badge-info">低</span>
+                                            break;
+                                        case 2:
+                                            <span class="badge badge-warning">中</span>
+                                            break;
+                                        case 3:
+                                            <span class="badge badge-danger">高</span>
+                                            break;
+                                    }
+                                </td>
+                                <td>
+                                    @if (word.IsRegex)
+                                    {
+                                        <span class="badge badge-primary">是</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge badge-secondary">否</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (word.IsEnabled)
+                                    {
+                                        <span class="badge badge-success">启用</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge badge-danger">禁用</span>
+                                    }
+                                </td>
+                                <td>@word.MatchCount</td>
+                                <td>@(word.LastMatchAt?.ToString("yyyy-MM-dd HH:mm:ss") ?? "-")</td>
+                                <td>
+                                    <button class="btn btn-sm btn-info" onclick="editWord(@word.Id)">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    @if (word.IsEnabled)
+                                    {
+                                        <button class="btn btn-sm btn-warning" onclick="toggleStatus(@word.Id, false)">
+                                            <i class="fas fa-ban"></i>
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <button class="btn btn-sm btn-success" onclick="toggleStatus(@word.Id, true)">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                    }
+                                    <button class="btn btn-sm btn-danger" onclick="deleteWord(@word.Id)">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 分页 -->
+            @if (Model.TotalPages > 1)
+            {
+                <div class="d-flex justify-content-between align-items-center mt-4">
+                    <div>
+                        显示 @(((Model.CurrentPage - 1) * Model.PageSize) + 1) 到 
+                        @(Math.Min(Model.CurrentPage * Model.PageSize, Model.TotalItems)) 条，
+                        共 @Model.TotalItems 条记录
+                    </div>
+                    <nav>
+                        <ul class="pagination">
+                            <li class="page-item @(Model.CurrentPage == 1 ? "disabled" : "")">
+                                <a class="page-link" href="@Model.GetPageUrl(1)">首页</a>
+                            </li>
+                            <li class="page-item @(Model.CurrentPage == 1 ? "disabled" : "")">
+                                <a class="page-link" href="@Model.GetPageUrl(Model.CurrentPage - 1)">上一页</a>
+                            </li>
+                            @for (int i = Math.Max(1, Model.CurrentPage - 2); i <= Math.Min(Model.TotalPages, Model.CurrentPage + 2); i++)
+                            {
+                                <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
+                                    <a class="page-link" href="@Model.GetPageUrl(i)">@i</a>
+                                </li>
+                            }
+                            <li class="page-item @(Model.CurrentPage == Model.TotalPages ? "disabled" : "")">
+                                <a class="page-link" href="@Model.GetPageUrl(Model.CurrentPage + 1)">下一页</a>
+                            </li>
+                            <li class="page-item @(Model.CurrentPage == Model.TotalPages ? "disabled" : "")">
+                                <a class="page-link" href="@Model.GetPageUrl(Model.TotalPages)">末页</a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- 添加敏感词模态框 -->
+<div class="modal fade" id="addWordModal" tabindex="-1" role="dialog" aria-labelledby="addWordModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addWordModalLabel">添加敏感词</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="addWordForm" onsubmit="return addWord(event)">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="newWord">敏感词</label>
+                        <input type="text" class="form-control" id="newWord" name="word" required
+                               placeholder="输入敏感词">
+                    </div>
+                    <div class="form-group">
+                        <label for="newCategory">分类</label>
+                        <select class="form-control" id="newCategory" name="category" required>
+                            @foreach (var category in Model.Categories)
+                            {
+                                <option value="@category">@category</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="newLevel">级别</label>
+                        <select class="form-control" id="newLevel" name="level" required>
+                            <option value="1">低</option>
+                            <option value="2">中</option>
+                            <option value="3">高</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <div class="custom-control custom-checkbox">
+                            <input type="checkbox" class="custom-control-input" id="newIsRegex" name="isRegex">
+                            <label class="custom-control-label" for="newIsRegex">使用正则表达式</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">确定添加</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 编辑敏感词模态框 -->
+<div class="modal fade" id="editWordModal" tabindex="-1" role="dialog" aria-labelledby="editWordModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editWordModalLabel">编辑敏感词</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="editWordForm" onsubmit="return updateWord(event)">
+                <input type="hidden" id="editId" name="id">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="editWord">敏感词</label>
+                        <input type="text" class="form-control" id="editWord" name="word" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editCategory">分类</label>
+                        <select class="form-control" id="editCategory" name="category" required>
+                            @foreach (var category in Model.Categories)
+                            {
+                                <option value="@category">@category</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="editLevel">级别</label>
+                        <select class="form-control" id="editLevel" name="level" required>
+                            <option value="1">低</option>
+                            <option value="2">中</option>
+                            <option value="3">高</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <div class="custom-control custom-checkbox">
+                            <input type="checkbox" class="custom-control-input" id="editIsRegex" name="isRegex">
+                            <label class="custom-control-label" for="editIsRegex">使用正则表达式</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">保存修改</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 导入敏感词模态框 -->
+<div class="modal fade" id="importModal" tabindex="-1" role="dialog" aria-labelledby="importModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="importModalLabel">导入敏感词</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="importForm" onsubmit="return importWordList(event)">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="importFile">选择文件</label>
+                        <input type="file" class="form-control-file" id="importFile" name="file" required
+                               accept=".txt,.csv,.xlsx">
+                        <small class="form-text text-muted">
+                            支持的文件格式：TXT（每行一个词）、CSV、Excel
+                        </small>
+                    </div>
+                    <div class="form-group">
+                        <label for="importCategory">默认分类</label>
+                        <select class="form-control" id="importCategory" name="category" required>
+                            @foreach (var category in Model.Categories)
+                            {
+                                <option value="@category">@category</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="importLevel">默认级别</label>
+                        <select class="form-control" id="importLevel" name="level" required>
+                            <option value="1">低</option>
+                            <option value="2">中</option>
+                            <option value="3">高</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">开始导入</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // 添加敏感词
+        function addWord(event) {
+            event.preventDefault();
+            const form = event.target;
+            const data = {
+                word: form.word.value,
+                category: form.category.value,
+                level: parseInt(form.level.value),
+                isRegex: form.isRegex.checked
+            };
+
+            fetch('/api/security/sensitivewords', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    alert('敏感词添加成功');
+                    location.reload();
+                } else {
+                    alert('敏感词添加失败：' + result.message);
+                }
+            })
+            .catch(error => {
+                alert('操作失败：' + error.message);
+            });
+
+            return false;
+        }
+
+        // 编辑敏感词
+        function editWord(id) {
+            fetch('/api/security/sensitivewords/' + id)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('editId').value = data.id;
+                    document.getElementById('editWord').value = data.word;
+                    document.getElementById('editCategory').value = data.category;
+                    document.getElementById('editLevel').value = data.level;
+                    document.getElementById('editIsRegex').checked = data.isRegex;
+                    $('#editWordModal').modal('show');
+                })
+                .catch(error => {
+                    alert('获取敏感词信息失败：' + error.message);
+                });
+        }
+
+        // 更新敏感词
+        function updateWord(event) {
+            event.preventDefault();
+            const form = event.target;
+            const data = {
+                id: parseInt(form.id.value),
+                word: form.word.value,
+                category: form.category.value,
+                level: parseInt(form.level.value),
+                isRegex: form.isRegex.checked
+            };
+
+            fetch('/api/security/sensitivewords/' + data.id, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    alert('敏感词更新成功');
+                    location.reload();
+                } else {
+                    alert('敏感词更新失败：' + result.message);
+                }
+            })
+            .catch(error => {
+                alert('操作失败：' + error.message);
+            });
+
+            return false;
+        }
+
+        // 切换状态
+        function toggleStatus(id, enable) {
+            const action = enable ? 'enable' : 'disable';
+            fetch('/api/security/sensitivewords/' + id + '/' + action, {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    location.reload();
+                } else {
+                    alert('操作失败：' + result.message);
+                }
+            })
+            .catch(error => {
+                alert('操作失败：' + error.message);
+            });
+        }
+
+        // 删除敏感词
+        function deleteWord(id) {
+            if (confirm('确定要删除这个敏感词吗？')) {
+                fetch('/api/security/sensitivewords/' + id, {
+                    method: 'DELETE'
+                })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        alert('敏感词删除成功');
+                        location.reload();
+                    } else {
+                        alert('敏感词删除失败：' + result.message);
+                    }
+                })
+                .catch(error => {
+                    alert('操作失败：' + error.message);
+                });
+            }
+        }
+
+        // 导入敏感词
+        function importWords() {
+            $('#importModal').modal('show');
+        }
+
+        function importWordList(event) {
+            event.preventDefault();
+            const form = event.target;
+            const formData = new FormData();
+            formData.append('file', form.file.files[0]);
+            formData.append('category', form.category.value);
+            formData.append('level', form.level.value);
+
+            fetch('/api/security/sensitivewords/import', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    alert('导入成功：共导入 ' + result.count + ' 个敏感词');
+                    location.reload();
+                } else {
+                    alert('导入失败：' + result.message);
+                }
+            })
+            .catch(error => {
+                alert('操作失败：' + error.message);
+            });
+
+            return false;
+        }
+    </script>
+} 

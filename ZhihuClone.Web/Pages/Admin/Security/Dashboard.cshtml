@@ -1,0 +1,368 @@
+@page
+@model ZhihuClone.Web.Pages.Admin.Security.DashboardModel
+@{
+    ViewData["Title"] = "安全管理中心";
+}
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="h3 mb-4 text-gray-800">安全管理中心</h1>
+        </div>
+    </div>
+
+    <!-- 统计卡片 -->
+    <div class="row">
+        <!-- 在线用户 -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                在线用户</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.OnlineUsers</div>
+                            <div class="text-xs mt-2">
+                                @if (Model.OnlineUsersChange > 0)
+                                {
+                                    <span class="text-success">
+                                        <i class="fas fa-arrow-up"></i> @Model.OnlineUsersChange%
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="text-danger">
+                                        <i class="fas fa-arrow-down"></i> @Math.Abs(Model.OnlineUsersChange)%
+                                    </span>
+                                }
+                                <span class="ml-1">较上小时</span>
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-users fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 已封禁IP -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-danger shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                                已封禁IP</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.BlockedIps</div>
+                            <div class="text-xs mt-2">
+                                <span class="text-danger">
+                                    <i class="fas fa-plus"></i> @Model.NewBlockedIps
+                                </span>
+                                <span class="ml-1">24小时内新增</span>
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-ban fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 敏感内容 -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                敏感内容</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.SensitiveContentCount</div>
+                            <div class="text-xs mt-2">
+                                <span class="text-warning">
+                                    <i class="fas fa-exclamation-triangle"></i> @Model.PendingSensitiveContent
+                                </span>
+                                <span class="ml-1">待处理</span>
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-shield-alt fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 系统健康度 -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">系统健康度
+                            </div>
+                            <div class="row no-gutters align-items-center">
+                                <div class="col-auto">
+                                    <div class="h5 mb-0 mr-3 font-weight-bold text-gray-800">@Model.SystemHealth%</div>
+                                </div>
+                                <div class="col">
+                                    <div class="progress progress-sm mr-2">
+                                        <div class="progress-bar bg-info" role="progressbar"
+                                            style="width: @Model.SystemHealth%" aria-valuenow="@Model.SystemHealth" aria-valuemin="0"
+                                            aria-valuemax="100"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="text-xs mt-2">
+                                <span class="text-info">
+                                    <i class="fas fa-info-circle"></i> @Model.SystemStatus
+                                </span>
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-clipboard-list fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 图表 -->
+    <div class="row">
+        <!-- 流量监控 -->
+        <div class="col-xl-8 col-lg-7">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">流量监控</h6>
+                </div>
+                <div class="card-body">
+                    <div class="chart-area">
+                        <canvas id="trafficChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 威胁分布 -->
+        <div class="col-xl-4 col-lg-5">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">威胁分布</h6>
+                </div>
+                <div class="card-body">
+                    <div class="chart-pie pt-4 pb-2">
+                        <canvas id="threatChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 最新事件 -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">最新安全事件</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered" width="100%" cellspacing="0">
+                            <thead>
+                                <tr>
+                                    <th>时间</th>
+                                    <th>类型</th>
+                                    <th>IP地址</th>
+                                    <th>状态</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var evt in Model.LatestEvents)
+                                {
+                                    <tr>
+                                        <td>@evt.Time.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                                        <td>
+                                            <span class="badge badge-@evt.TypeColor">@evt.Type</span>
+                                        </td>
+                                        <td>@evt.IpAddress</td>
+                                        <td>@evt.Status</td>
+                                        <td>
+                                            <button class="btn btn-sm btn-info" onclick="viewDetails(@evt.Id)">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-danger" onclick="blockIp('@evt.IpAddress')">
+                                                <i class="fas fa-ban"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 快捷操作 -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">快捷操作</h6>
+                </div>
+                <div class="card-body">
+                    <a href="/Admin/Security/IpManagement" class="btn btn-primary mr-2 mb-2">
+                        <i class="fas fa-network-wired"></i> IP管理
+                    </a>
+                    <a href="/Admin/Security/SensitiveWords" class="btn btn-warning mr-2 mb-2">
+                        <i class="fas fa-filter"></i> 敏感词管理
+                    </a>
+                    <a href="/Admin/Security/SpamPatterns" class="btn btn-danger mr-2 mb-2">
+                        <i class="fas fa-bug"></i> 垃圾信息规则
+                    </a>
+                    <a href="/Admin/Security/FileSignatures" class="btn btn-info mr-2 mb-2">
+                        <i class="fas fa-file-signature"></i> 文件签名
+                    </a>
+                    <a href="/Admin/Security/Reports" class="btn btn-secondary mr-2 mb-2">
+                        <i class="fas fa-chart-line"></i> 安全报告
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // 流量监控图表
+        var trafficCtx = document.getElementById('trafficChart').getContext('2d');
+        var trafficChart = new Chart(trafficCtx, {
+            type: 'line',
+            data: {
+                labels: @Json.Serialize(Model.TrafficLabels),
+                datasets: [{
+                    label: '正常流量',
+                    data: @Json.Serialize(Model.NormalTraffic),
+                    backgroundColor: 'rgba(78, 115, 223, 0.05)',
+                    borderColor: 'rgba(78, 115, 223, 1)',
+                    pointRadius: 3,
+                    pointBackgroundColor: 'rgba(78, 115, 223, 1)',
+                    pointBorderColor: 'rgba(78, 115, 223, 1)',
+                    pointHoverRadius: 3,
+                    pointHoverBackgroundColor: 'rgba(78, 115, 223, 1)',
+                    pointHoverBorderColor: 'rgba(78, 115, 223, 1)',
+                    pointHitRadius: 10,
+                    pointBorderWidth: 2,
+                    fill: true
+                },
+                {
+                    label: '可疑流量',
+                    data: @Json.Serialize(Model.SuspiciousTraffic),
+                    backgroundColor: 'rgba(231, 74, 59, 0.05)',
+                    borderColor: 'rgba(231, 74, 59, 1)',
+                    pointRadius: 3,
+                    pointBackgroundColor: 'rgba(231, 74, 59, 1)',
+                    pointBorderColor: 'rgba(231, 74, 59, 1)',
+                    pointHoverRadius: 3,
+                    pointHoverBackgroundColor: 'rgba(231, 74, 59, 1)',
+                    pointHoverBorderColor: 'rgba(231, 74, 59, 1)',
+                    pointHitRadius: 10,
+                    pointBorderWidth: 2,
+                    fill: true
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                layout: {
+                    padding: {
+                        left: 10,
+                        right: 25,
+                        top: 25,
+                        bottom: 0
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            display: false,
+                            drawBorder: false
+                        }
+                    },
+                    y: {
+                        ticks: {
+                            maxTicksLimit: 5,
+                            padding: 10
+                        },
+                        grid: {
+                            color: 'rgb(234, 236, 244)',
+                            drawBorder: false,
+                            borderDash: [2],
+                            zeroLineBorderDash: [2]
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: true
+                    }
+                }
+            }
+        });
+
+        // 威胁分布图表
+        var threatCtx = document.getElementById('threatChart').getContext('2d');
+        var threatChart = new Chart(threatCtx, {
+            type: 'doughnut',
+            data: {
+                labels: @Json.Serialize(Model.ThreatLabels),
+                datasets: [{
+                    data: @Json.Serialize(Model.ThreatData),
+                    backgroundColor: [
+                        '#4e73df',
+                        '#1cc88a',
+                        '#36b9cc',
+                        '#f6c23e',
+                        '#e74a3b'
+                    ],
+                    hoverBackgroundColor: [
+                        '#2e59d9',
+                        '#17a673',
+                        '#2c9faf',
+                        '#dda20a',
+                        '#be2617'
+                    ],
+                    hoverBorderColor: 'rgba(234, 236, 244, 1)'
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'bottom'
+                    }
+                },
+                cutout: '70%'
+            }
+        });
+
+        // 查看详情
+        function viewDetails(id) {
+            // TODO: 实现查看详情功能
+            alert('查看详情 ID: ' + id);
+        }
+
+        // 封禁IP
+        function blockIp(ip) {
+            if (confirm('确定要封禁IP: ' + ip + ' 吗？')) {
+                // TODO: 实现封禁IP功能
+                alert('已封禁IP: ' + ip);
+            }
+        }
+    </script>
+} 

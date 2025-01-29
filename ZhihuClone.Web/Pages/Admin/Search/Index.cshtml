@@ -1,0 +1,277 @@
+@page
+@model ZhihuClone.Web.Pages.Admin.Search.IndexModel
+@{
+    ViewData["Title"] = "搜索管理";
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 text-gray-800">搜索管理</h1>
+    </div>
+
+    <!-- 统计信息卡片 -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">今日搜索量</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.TodaySearchCount</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-search fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">总搜索量</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.TotalSearchCount</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-chart-line fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">独立搜索用户</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.UniqueUsers</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-users fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">平均搜索时长</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.AvgSearchDuration</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-clock fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- 热门搜索 -->
+        <div class="col-xl-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">热门搜索</h6>
+                    <div class="dropdown no-arrow">
+                        <button class="btn btn-link btn-sm" type="button" id="hotSearchDropdown" data-toggle="dropdown">
+                            <i class="fas fa-ellipsis-v"></i>
+                        </button>
+                        <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in">
+                            <a class="dropdown-item" href="#" onclick="exportHotSearches()">
+                                <i class="fas fa-download fa-sm fa-fw mr-2 text-gray-400"></i>
+                                导出数据
+                            </a>
+                            <a class="dropdown-item" href="#" onclick="refreshHotSearches()">
+                                <i class="fas fa-sync-alt fa-sm fa-fw mr-2 text-gray-400"></i>
+                                刷新数据
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="chart-area">
+                        <canvas id="hotSearchChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 搜索趋势 -->
+        <div class="col-xl-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">搜索趋势</h6>
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-sm btn-outline-primary active" data-range="day">日</button>
+                        <button type="button" class="btn btn-sm btn-outline-primary" data-range="week">周</button>
+                        <button type="button" class="btn btn-sm btn-outline-primary" data-range="month">月</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="chart-area">
+                        <canvas id="searchTrendChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- 搜索历史 -->
+        <div class="col-xl-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">搜索历史</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered" id="searchHistoryTable" width="100%" cellspacing="0">
+                            <thead>
+                                <tr>
+                                    <th>关键词</th>
+                                    <th>搜索次数</th>
+                                    <th>用户数</th>
+                                    <th>首次搜索</th>
+                                    <th>最近搜索</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var history in Model.SearchHistories)
+                                {
+                                    <tr>
+                                        <td>@history.Keyword</td>
+                                        <td>@history.SearchCount</td>
+                                        <td>@history.UserCount</td>
+                                        <td>@history.FirstSearchTime.ToString("yyyy-MM-dd HH:mm")</td>
+                                        <td>@history.LastSearchTime.ToString("yyyy-MM-dd HH:mm")</td>
+                                        <td>
+                                            <button class="btn btn-sm btn-info" onclick="viewDetails(@history.Id)">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-danger" onclick="deleteHistory(@history.Id)">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // 初始化图表
+        document.addEventListener('DOMContentLoaded', function() {
+            initHotSearchChart();
+            initSearchTrendChart();
+            initDataTable();
+        });
+
+        // 热门搜索图表
+        function initHotSearchChart() {
+            var ctx = document.getElementById('hotSearchChart');
+            var myChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: @Json.Serialize(Model.HotSearchLabels),
+                    datasets: [{
+                        label: '搜索次数',
+                        data: @Json.Serialize(Model.HotSearchData),
+                        backgroundColor: 'rgba(78, 115, 223, 0.5)',
+                        borderColor: 'rgba(78, 115, 223, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // 搜索趋势图表
+        function initSearchTrendChart() {
+            var ctx = document.getElementById('searchTrendChart');
+            var myChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: @Json.Serialize(Model.TrendLabels),
+                    datasets: [{
+                        label: '搜索量',
+                        data: @Json.Serialize(Model.TrendData),
+                        fill: false,
+                        borderColor: 'rgb(75, 192, 192)',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // 初始化DataTable
+        function initDataTable() {
+            $('#searchHistoryTable').DataTable({
+                language: {
+                    url: '//cdn.datatables.net/plug-ins/1.10.24/i18n/Chinese.json'
+                },
+                order: [[4, 'desc']]
+            });
+        }
+
+        // 导出热门搜索数据
+        function exportHotSearches() {
+            window.location.href = '/Admin/Search/ExportHotSearches';
+        }
+
+        // 刷新热门搜索数据
+        function refreshHotSearches() {
+            location.reload();
+        }
+
+        // 查看搜索历史详情
+        function viewDetails(id) {
+            window.location.href = `/Admin/Search/Details/${id}`;
+        }
+
+        // 删除搜索历史
+        function deleteHistory(id) {
+            if (confirm('确定要删除这条搜索历史吗？')) {
+                fetch(`/api/admin/search/history/${id}`, {
+                    method: 'DELETE'
+                }).then(response => {
+                    if (response.ok) {
+                        location.reload();
+                    }
+                });
+            }
+        }
+    </script>
+} 

@@ -1,0 +1,58 @@
+@model IEnumerable<ZhihuClone.Core.Models.Search.SearchHistory>
+
+@if (!Model.Any())
+{
+    <div class="text-center text-muted my-5">
+        <i class="fas fa-history fa-3x mb-3"></i>
+        <p>暂无搜索历史</p>
+    </div>
+}
+else
+{
+    <div class="list-group list-group-flush">
+        @foreach (var history in Model)
+        {
+            <div class="list-group-item">
+                <div class="d-flex w-100 justify-content-between">
+                    <h5 class="mb-1">
+                        <a href="/search?q=@Uri.EscapeDataString(history.Keyword)" class="text-decoration-none text-dark">
+                            @history.Keyword
+                        </a>
+                    </h5>
+                    <small class="text-muted">@history.LastSearchedAt.ToString("yyyy-MM-dd HH:mm")</small>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <small class="text-muted">
+                        <i class="fas fa-search"></i> 搜索 @history.SearchCount 次
+                        <i class="fas fa-file-alt ms-2"></i> 找到 @history.ResultCount 个结果
+                    </small>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteSearchHistory(@history.Id)">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@section Scripts {
+    <script>
+        function deleteSearchHistory(id) {
+            if (confirm('确定要删除这条搜索历史吗？')) {
+                fetch(`/api/search/history/${id}`, {
+                    method: 'DELETE',
+                    credentials: 'include'
+                }).then(response => {
+                    if (response.ok) {
+                        location.reload();
+                    } else {
+                        alert('删除失败，请重试');
+                    }
+                }).catch(error => {
+                    console.error('Error:', error);
+                    alert('删除失败，请重试');
+                });
+            }
+        }
+    </script>
+} 

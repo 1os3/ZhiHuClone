@@ -1,0 +1,57 @@
+@using ZhihuClone.Core.Models.Content
+@model IEnumerable<Post>
+
+<div class="user-posts">
+    @if (Model.Any())
+    {
+        foreach (var post in Model)
+        {
+            <div class="post-item">
+                <div class="post-header">
+                    <div class="post-meta">
+                        <img src="@post.Author.Avatar" alt="@post.Author.UserName" class="avatar" />
+                        <span class="username">@post.Author.UserName</span>
+                        <span class="time">@post.CreatedAt.ToString("yyyy-MM-dd HH:mm")</span>
+                    </div>
+                </div>
+                <div class="post-content">
+                    <h3 class="title">
+                        <a href="/post/@post.Id">@post.Title</a>
+                    </h3>
+                    <p class="summary">@post.Summary</p>
+                </div>
+                <div class="post-footer">
+                    <div class="post-stats">
+                        <span class="me-3">
+                            <i class="far fa-eye"></i>
+                            @post.ViewCount 浏览
+                        </span>
+                        <span class="me-3">
+                            <i class="far fa-thumbs-up"></i>
+                            @post.LikeCount 点赞
+                        </span>
+                        <span>
+                            <i class="far fa-comment"></i>
+                            @post.CommentCount 评论
+                        </span>
+                    </div>
+                </div>
+            </div>
+        }
+
+        @if (Model.Count() >= 10)
+        {
+            <div class="text-center mt-4">
+                <button class="btn btn-outline-primary" onclick="loadMorePosts()">
+                    加载更多
+                </button>
+            </div>
+        }
+    }
+    else
+    {
+        <div class="no-posts">
+            <p>暂无帖子</p>
+        </div>
+    }
+</div> 

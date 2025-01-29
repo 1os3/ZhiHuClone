@@ -1,0 +1,199 @@
+@model ZhihuClone.Web.Models.Post.CreatePostViewModel
+@{
+    ViewData["Title"] = "写文章";
+}
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            @if (!ViewData.ModelState.IsValid)
+            {
+                <div class="alert alert-danger">
+                    <div asp-validation-summary="All" class="text-danger"></div>
+                </div>
+            }
+
+            @if (TempData["SuccessMessage"] != null)
+            {
+                <div class="alert alert-success">
+                    @TempData["SuccessMessage"]
+                </div>
+            }
+
+            <form asp-controller="Write" asp-action="Create" method="post" enctype="multipart/form-data" id="postForm">
+                @Html.AntiForgeryToken()
+                <div class="card">
+                    <div class="card-body">
+                        <div class="form-group">
+                            <input asp-for="Title" class="form-control form-control-lg border-0" placeholder="请输入标题..." required />
+                            <span asp-validation-for="Title" class="text-danger"></span>
+                        </div>
+
+                        <div class="form-group mt-4">
+                            <textarea asp-for="Content" class="form-control border-0" rows="12" placeholder="请输入正文..." required></textarea>
+                            <span asp-validation-for="Content" class="text-danger"></span>
+                        </div>
+
+                        <div class="form-group mt-4">
+                            <textarea asp-for="Summary" class="form-control" rows="3" placeholder="请输入摘要（可选）..."></textarea>
+                            <span asp-validation-for="Summary" class="text-danger"></span>
+                        </div>
+
+                        <div class="form-group mt-4">
+                            <label>封面图片（可选）</label>
+                            <input asp-for="CoverImage" type="file" class="form-control" accept="image/*" />
+                            <span asp-validation-for="CoverImage" class="text-danger"></span>
+                        </div>
+
+                        <div class="form-group mt-4">
+                            <label>选择话题（可选）</label>
+                            <select asp-for="TopicIds" class="form-control" multiple>
+                                @foreach (var topic in ViewBag.Topics)
+                                {
+                                    <option value="@topic.Id">@topic.Name</option>
+                                }
+                            </select>
+                            <span asp-validation-for="TopicIds" class="text-danger"></span>
+                        </div>
+
+                        <div class="form-check mt-4">
+                            <input asp-for="IsAnonymous" class="form-check-input" type="checkbox" />
+                            <label class="form-check-label" asp-for="IsAnonymous">匿名发布</label>
+                        </div>
+                    </div>
+
+                    <div class="card-footer bg-white">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <button type="submit" class="btn btn-primary">发布文章</button>
+                            <button type="button" class="btn btn-outline-secondary" onclick="saveDraft()">保存草稿</button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
+    <script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
+    <script>
+        let autoSaveTimer;
+        let lastSavedContent = '';
+
+        $(document).ready(function () {
+            // 启动自动保存
+            startAutoSave();
+
+            // 表单验证
+            $("#postForm").validate({
+                rules: {
+                    Title: {
+                        required: true,
+                        maxlength: 200
+                    },
+                    Content: {
+                        required: true
+                    },
+                    Summary: {
+                        maxlength: 500
+                    }
+                },
+                messages: {
+                    Title: {
+                        required: "请输入标题",
+                        maxlength: "标题不能超过200个字符"
+                    },
+                    Content: {
+                        required: "请输入正文"
+                    },
+                    Summary: {
+                        maxlength: "摘要不能超过500个字符"
+                    }
+                },
+                errorElement: "span",
+                errorClass: "text-danger"
+            });
+        });
+
+        function getFormData() {
+            const formData = new FormData();
+            formData.append('Title', document.getElementById('Title').value);
+            formData.append('Content', document.getElementById('Content').value);
+            formData.append('Summary', document.getElementById('Summary').value);
+            formData.append('IsAnonymous', document.getElementById('IsAnonymous').checked);
+            
+            const topicSelect = document.getElementById('TopicIds');
+            if (topicSelect) {
+                Array.from(topicSelect.selectedOptions).forEach(option => {
+                    formData.append('TopicIds', option.value);
+                });
+            }
+
+            const coverImage = document.getElementById('CoverImage').files[0];
+            if (coverImage) {
+                formData.append('CoverImage', coverImage);
+            }
+
+            return formData;
+        }
+
+        function startAutoSave() {
+            if (autoSaveTimer) clearInterval(autoSaveTimer);
+            autoSaveTimer = setInterval(autoSaveDraft, 60000); // 每分钟自动保存
+        }
+
+        async function saveDraft(isAutoSave = false) {
+            const data = {
+                title: document.getElementById('Title').value,
+                content: document.getElementById('Content').value,
+                summary: document.getElementById('Summary').value,
+                isAnonymous: document.getElementById('IsAnonymous').checked,
+                topicIds: Array.from(document.getElementById('TopicIds').selectedOptions).map(o => parseInt(o.value))
+            };
+
+            if (!data.title && !data.content) {
+                if (!isAutoSave) {
+                    alert('标题和内容不能都为空');
+                }
+                return;
+            }
+
+            const currentContent = JSON.stringify(data);
+            if (currentContent === lastSavedContent) return;
+
+            try {
+                const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+                const response = await fetch('/Write/draft', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': token
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    if (!isAutoSave) {
+                        alert(error.error || '保存失败，请重试');
+                    }
+                    return;
+                }
+
+                const result = await response.json();
+                lastSavedContent = currentContent;
+                
+                if (!isAutoSave) {
+                    alert('草稿已保存');
+                    window.location.href = `/Write/draft/${result.id}`;
+                }
+            } catch (error) {
+                console.error('保存草稿时发生错误:', error);
+                if (!isAutoSave) {
+                    alert('保存失败，请重试');
+                }
+            }
+        }
+    </script>
+} 

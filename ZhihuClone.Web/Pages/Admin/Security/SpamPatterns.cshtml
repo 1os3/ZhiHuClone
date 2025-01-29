@@ -1,0 +1,341 @@
+@page
+@model ZhihuClone.Web.Pages.Admin.Security.SpamPatternsModel
+@{
+    ViewData["Title"] = "垃圾信息规则管理";
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 text-gray-800">垃圾信息规则管理</h1>
+        <div>
+            <button class="btn btn-success mr-2" onclick="importPatterns()">
+                <i class="fas fa-file-import"></i> 导入
+            </button>
+            <button class="btn btn-primary" data-toggle="modal" data-target="#addPatternModal">
+                <i class="fas fa-plus"></i> 添加规则
+            </button>
+        </div>
+    </div>
+
+    <!-- 搜索和过滤 -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">搜索和过滤</h6>
+        </div>
+        <div class="card-body">
+            <form method="get">
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <label for="pattern">规则内容</label>
+                        <input type="text" class="form-control" id="pattern" name="pattern" 
+                               value="@Model.Pattern" placeholder="输入规则内容">
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label for="category">分类</label>
+                        <select class="form-control" id="category" name="category">
+                            <option value="">全部</option>
+                            @foreach (var category in Model.Categories)
+                            {
+                                <option value="@category" selected="@(category == Model.Category)">@category</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-3 mb-3 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-search"></i> 搜索
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 规则列表 -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">规则列表</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>规则内容</th>
+                            <th>分类</th>
+                            <th>是否正则</th>
+                            <th>状态</th>
+                            <th>匹配次数</th>
+                            <th>最后匹配</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var pattern in Model.SpamPatterns)
+                        {
+                            <tr>
+                                <td>@pattern.Pattern</td>
+                                <td>@pattern.Category</td>
+                                <td>
+                                    @if (pattern.IsRegex)
+                                    {
+                                        <span class="badge badge-primary">是</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge badge-secondary">否</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (pattern.IsEnabled)
+                                    {
+                                        <span class="badge badge-success">启用</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge badge-danger">禁用</span>
+                                    }
+                                </td>
+                                <td>@pattern.MatchCount</td>
+                                <td>@(pattern.LastMatchAt?.ToString("yyyy-MM-dd HH:mm:ss") ?? "-")</td>
+                                <td>
+                                    <button class="btn btn-sm btn-info" onclick="editPattern(@pattern.Id)">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    @if (pattern.IsEnabled)
+                                    {
+                                        <button class="btn btn-sm btn-warning" onclick="togglePattern(@pattern.Id, false)">
+                                            <i class="fas fa-ban"></i>
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <button class="btn btn-sm btn-success" onclick="togglePattern(@pattern.Id, true)">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                    }
+                                    <button class="btn btn-sm btn-danger" onclick="deletePattern(@pattern.Id)">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 分页 -->
+            @if (Model.TotalPages > 1)
+            {
+                <nav>
+                    <ul class="pagination justify-content-center">
+                        @if (Model.CurrentPage > 1)
+                        {
+                            <li class="page-item">
+                                <a class="page-link" href="@Model.GetPageUrl(Model.CurrentPage - 1)">上一页</a>
+                            </li>
+                        }
+
+                        @for (var i = 1; i <= Model.TotalPages; i++)
+                        {
+                            <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
+                                <a class="page-link" href="@Model.GetPageUrl(i)">@i</a>
+                            </li>
+                        }
+
+                        @if (Model.CurrentPage < Model.TotalPages)
+                        {
+                            <li class="page-item">
+                                <a class="page-link" href="@Model.GetPageUrl(Model.CurrentPage + 1)">下一页</a>
+                            </li>
+                        }
+                    </ul>
+                </nav>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- 添加规则模态框 -->
+<div class="modal fade" id="addPatternModal" tabindex="-1" role="dialog" aria-labelledby="addPatternModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addPatternModalLabel">添加规则</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="addPatternForm" onsubmit="return addPattern(event)">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="newPattern">规则内容</label>
+                        <input type="text" class="form-control" id="newPattern" name="pattern" required
+                               placeholder="输入规则内容">
+                    </div>
+                    <div class="form-group">
+                        <label for="newCategory">分类</label>
+                        <select class="form-control" id="newCategory" name="category" required>
+                            @foreach (var category in Model.Categories)
+                            {
+                                <option value="@category">@category</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <div class="custom-control custom-checkbox">
+                            <input type="checkbox" class="custom-control-input" id="newIsRegex" name="isRegex">
+                            <label class="custom-control-label" for="newIsRegex">使用正则表达式</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">添加</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 导入规则模态框 -->
+<div class="modal fade" id="importModal" tabindex="-1" role="dialog" aria-labelledby="importModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="importModalLabel">导入规则</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="importForm" onsubmit="return importPatterns(event)">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="importFile">选择文件</label>
+                        <input type="file" class="form-control-file" id="importFile" name="file" required>
+                        <small class="form-text text-muted">请选择一个文本文件，每行一个规则</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="importCategory">分类</label>
+                        <select class="form-control" id="importCategory" name="category" required>
+                            @foreach (var category in Model.Categories)
+                            {
+                                <option value="@category">@category</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">导入</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function addPattern(event) {
+            event.preventDefault();
+            var form = event.target;
+            var data = {
+                pattern: form.pattern.value,
+                category: form.category.value,
+                isRegex: form.isRegex.checked
+            };
+
+            $.ajax({
+                url: '/api/security/spampatterns',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(data),
+                success: function (response) {
+                    if (response.success) {
+                        location.reload();
+                    } else {
+                        alert('添加失败：' + response.message);
+                    }
+                },
+                error: function (xhr) {
+                    alert('添加失败：' + xhr.responseJSON?.message || '未知错误');
+                }
+            });
+
+            return false;
+        }
+
+        function editPattern(id) {
+            // TODO: 实现编辑功能
+        }
+
+        function togglePattern(id, enable) {
+            $.ajax({
+                url: '/api/security/spampatterns/' + id + '/' + (enable ? 'enable' : 'disable'),
+                method: 'POST',
+                success: function (response) {
+                    if (response.success) {
+                        location.reload();
+                    } else {
+                        alert('操作失败：' + response.message);
+                    }
+                },
+                error: function (xhr) {
+                    alert('操作失败：' + xhr.responseJSON?.message || '未知错误');
+                }
+            });
+        }
+
+        function deletePattern(id) {
+            if (!confirm('确定要删除这个规则吗？')) {
+                return;
+            }
+
+            $.ajax({
+                url: '/api/security/spampatterns/' + id,
+                method: 'DELETE',
+                success: function (response) {
+                    if (response.success) {
+                        location.reload();
+                    } else {
+                        alert('删除失败：' + response.message);
+                    }
+                },
+                error: function (xhr) {
+                    alert('删除失败：' + xhr.responseJSON?.message || '未知错误');
+                }
+            });
+        }
+
+        function importPatterns() {
+            $('#importModal').modal('show');
+        }
+
+        function importPatterns(event) {
+            event.preventDefault();
+            var form = event.target;
+            var formData = new FormData();
+            formData.append('file', form.file.files[0]);
+            formData.append('category', form.category.value);
+
+            $.ajax({
+                url: '/api/security/spampatterns/import',
+                method: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function (response) {
+                    if (response.success) {
+                        location.reload();
+                    } else {
+                        alert('导入失败：' + response.message);
+                    }
+                },
+                error: function (xhr) {
+                    alert('导入失败：' + xhr.responseJSON?.message || '未知错误');
+                }
+            });
+
+            return false;
+        }
+    </script>
+} 

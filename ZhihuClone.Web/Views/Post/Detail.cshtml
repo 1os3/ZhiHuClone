@@ -1,0 +1,244 @@
+@model ZhihuClone.Core.Models.Content.Post
+@{
+    ViewData["Title"] = Model.Title;
+    var author = (ZhihuClone.Core.Models.User)ViewBag.Author;
+    var topics = (IEnumerable<ZhihuClone.Core.Models.Content.Topic>)ViewBag.Topics;
+}
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    @if (!string.IsNullOrEmpty(Model.CoverImage))
+                    {
+                        <img src="@Model.CoverImage" class="card-img-top mb-4" alt="@Model.Title">
+                    }
+
+                    <h1 class="card-title mb-4">@Model.Title</h1>
+
+                    <div class="d-flex align-items-center mb-4">
+                        <img src="@(author.Avatar ?? "/images/default-avatar.png")" class="rounded-circle" width="40" height="40" alt="@author.UserName">
+                        <div class="ms-3">
+                            <div class="fw-bold">@(Model.IsAnonymous ? "匿名用户" : (author.Nickname ?? author.UserName))</div>
+                            <div class="text-muted small">
+                                发布于 @Model.CreatedAt.ToString("yyyy-MM-dd HH:mm")
+                                @if (Model.UpdatedAt != Model.CreatedAt)
+                                {
+                                    <span>· 编辑于 @Model.UpdatedAt?.ToString("yyyy-MM-dd HH:mm")</span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    @if (topics != null && topics.Any())
+                    {
+                        <div class="mb-4">
+                            @foreach (var topic in topics)
+                            {
+                                <a href="/topic/@topic.Id" class="badge bg-light text-dark text-decoration-none me-2">@topic.Name</a>
+                            }
+                        </div>
+                    }
+
+                    <div class="post-content mb-4">
+                        @Html.Raw(Model.Content)
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <button type="button" class="btn btn-outline-secondary me-2" onclick="showCommentForm()">
+                                <i class="bi bi-chat"></i> 评论 (@Model.CommentCount)
+                            </button>
+                        </div>
+                        <div>
+                            <button type="button" class="btn btn-outline-danger" onclick="showReportModal()">
+                                <i class="bi bi-flag"></i> 举报
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 评论区 -->
+            <div class="card mt-4">
+                <div class="card-body">
+                    <h5 class="card-title mb-4">评论</h5>
+                    <div id="commentForm" style="display: none;">
+                        @if (User.Identity?.IsAuthenticated == true)
+                        {
+                            <form id="postCommentForm" onsubmit="submitComment(event)">
+                                <input type="hidden" name="PostId" value="@Model.Id" />
+                                <div class="form-group">
+                                    <textarea name="Content" class="form-control" rows="3" placeholder="写下你的评论..."></textarea>
+                                </div>
+                                <div class="form-group mt-3">
+                                    <button type="submit" class="btn btn-primary">发表评论</button>
+                                </div>
+                            </form>
+                        }
+                        else
+                        {
+                            <div class="alert alert-info">
+                                请<a href="/account/login">登录</a>后发表评论
+                            </div>
+                        }
+                    </div>
+                    <div id="commentList">
+                        <!-- 评论列表将通过JavaScript动态加载 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <!-- 作者信息卡片 -->
+            @if (!Model.IsAnonymous)
+            {
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title">关于作者</h5>
+                        <div class="d-flex align-items-center mb-3">
+                            <img src="@(author.Avatar ?? "/images/default-avatar.png")" class="rounded-circle" width="60" height="60" alt="@author.UserName">
+                            <div class="ms-3">
+                                <div class="fw-bold">@(author.Nickname ?? author.UserName)</div>
+                                <div class="text-muted small">@author.Bio</div>
+                            </div>
+                        </div>
+                        <a href="/user/@author.UserName" class="btn btn-outline-primary w-100">查看主页</a>
+                    </div>
+                </div>
+            }
+
+            <!-- 相关文章 -->
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">相关文章</h5>
+                    <!-- 相关文章列表将通过JavaScript动态加载 -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 举报模态框 -->
+<div class="modal fade" id="reportModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">举报文章</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form asp-action="Report" asp-route-id="@Model.Id" method="post">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>举报原因</label>
+                        <select name="reason" class="form-select" required>
+                            <option value="">请选择举报原因...</option>
+                            <option value="spam">垃圾广告</option>
+                            <option value="inappropriate">不当内容</option>
+                            <option value="copyright">侵犯版权</option>
+                            <option value="other">其他原因</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-danger">提交举报</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function showCommentForm() {
+            document.getElementById('commentForm').style.display = 'block';
+        }
+
+        function showReportModal() {
+            var reportModal = new bootstrap.Modal(document.getElementById('reportModal'));
+            reportModal.show();
+        }
+
+        // 提交评论
+        async function submitComment(event) {
+            event.preventDefault();
+            const form = event.target;
+            const content = form.querySelector('textarea[name="Content"]').value;
+            const postId = form.querySelector('input[name="PostId"]').value;
+
+            try {
+                const response = await fetch('/api/Comment', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        content: content,
+                        postId: parseInt(postId),
+                        isAnonymous: false
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => null);
+                    console.error('提交评论失败:', errorData);
+                    throw new Error(errorData?.message || '提交评论失败');
+                }
+
+                // 清空评论框并重新加载评论列表
+                form.reset();
+                await loadComments();
+            } catch (error) {
+                console.error('提交评论失败:', error);
+                alert('评论提交失败: ' + error.message);
+            }
+        }
+
+        // 加载评论列表
+        async function loadComments() {
+            try {
+                const response = await fetch(`/api/Comment/post/@Model.Id`, {
+                    headers: {
+                        'Accept': 'application/json'
+                    },
+                    credentials: 'include'
+                });
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => null);
+                    console.error('加载评论失败:', errorData);
+                    throw new Error(errorData?.message || '加载评论失败');
+                }
+                const comments = await response.json();
+                const commentList = document.getElementById('commentList');
+                commentList.innerHTML = comments.map(comment => `
+                    <div class="comment mb-3">
+                        <div class="d-flex">
+                            <img src="${comment.author?.avatar || '/images/default-avatar.png'}" class="rounded-circle" width="32" height="32">
+                            <div class="ms-2">
+                                <div class="fw-bold">${comment.isAnonymous ? '匿名用户' : (comment.author?.nickname || comment.author?.userName || '未知用户')}</div>
+                                <div>${comment.content}</div>
+                                <div class="text-muted small">
+                                    ${new Date(comment.createdAt).toLocaleString()}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('加载评论失败:', error);
+                document.getElementById('commentList').innerHTML = `<div class="alert alert-danger">
+                    加载评论失败: ${error.message}
+                    <button onclick="loadComments()" class="btn btn-link">重试</button>
+                </div>`;
+            }
+        }
+
+        // 页面加载完成后加载评论
+        document.addEventListener('DOMContentLoaded', loadComments);
+    </script>
+} 

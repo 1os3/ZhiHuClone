@@ -1,0 +1,12 @@
+F:\ZhiHuClone\ZhihuClone.Core\obj\Debug\net7.0\ZhihuClone.Core.csproj.AssemblyReference.cache
+F:\ZhiHuClone\ZhihuClone.Core\obj\Debug\net7.0\ZhihuClone.Core.GeneratedMSBuildEditorConfig.editorconfig
+F:\ZhiHuClone\ZhihuClone.Core\obj\Debug\net7.0\ZhihuClone.Core.AssemblyInfoInputs.cache
+F:\ZhiHuClone\ZhihuClone.Core\obj\Debug\net7.0\ZhihuClone.Core.AssemblyInfo.cs
+F:\ZhiHuClone\ZhihuClone.Core\obj\Debug\net7.0\ZhihuClone.Core.csproj.CoreCompileInputs.cache
+F:\ZhiHuClone\ZhihuClone.Core\bin\Debug\net7.0\ZhihuClone.Core.deps.json
+F:\ZhiHuClone\ZhihuClone.Core\bin\Debug\net7.0\ZhihuClone.Core.dll
+F:\ZhiHuClone\ZhihuClone.Core\bin\Debug\net7.0\ZhihuClone.Core.pdb
+F:\ZhiHuClone\ZhihuClone.Core\obj\Debug\net7.0\ZhihuClone.Core.dll
+F:\ZhiHuClone\ZhihuClone.Core\obj\Debug\net7.0\refint\ZhihuClone.Core.dll
+F:\ZhiHuClone\ZhihuClone.Core\obj\Debug\net7.0\ZhihuClone.Core.pdb
+F:\ZhiHuClone\ZhihuClone.Core\obj\Debug\net7.0\ref\ZhihuClone.Core.dll

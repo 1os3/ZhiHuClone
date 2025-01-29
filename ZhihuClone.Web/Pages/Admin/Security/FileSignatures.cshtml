@@ -1,0 +1,469 @@
+@page
+@model ZhihuClone.Web.Pages.Admin.Security.FileSignaturesModel
+@{
+    ViewData["Title"] = "文件签名管理";
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 text-gray-800">文件签名管理</h1>
+        <div>
+            <button class="btn btn-success mr-2" onclick="importSignatures()">
+                <i class="fas fa-file-import"></i> 导入
+            </button>
+            <button class="btn btn-primary" data-toggle="modal" data-target="#addSignatureModal">
+                <i class="fas fa-plus"></i> 添加签名
+            </button>
+        </div>
+    </div>
+
+    <!-- 搜索和过滤 -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">搜索和过滤</h6>
+        </div>
+        <div class="card-body">
+            <form method="get">
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <label for="signature">签名</label>
+                        <input type="text" class="form-control" id="signature" name="signature" 
+                               value="@Model.SearchParams.Signature" placeholder="输入文件签名">
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label for="fileType">文件类型</label>
+                        <select class="form-control" id="fileType" name="fileType">
+                            <option value="">全部</option>
+                            @foreach (var fileType in Model.FileTypes)
+                            {
+                                <option value="@fileType" @(Model.SearchParams.FileType == fileType ? "selected" : "")>
+                                    @fileType
+                                </option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label for="status">状态</label>
+                        <select class="form-control" id="status" name="status">
+                            <option value="">全部</option>
+                            <option value="whitelisted" @(Model.SearchParams.Status == "whitelisted" ? "selected" : "")>白名单</option>
+                            <option value="blacklisted" @(Model.SearchParams.Status == "blacklisted" ? "selected" : "")>黑名单</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label>&nbsp;</label>
+                        <div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-search"></i> 搜索
+                            </button>
+                            <a href="/Admin/Security/FileSignatures" class="btn btn-secondary ml-2">
+                                <i class="fas fa-redo"></i> 重置
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 签名列表 -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">文件签名列表</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>签名</th>
+                            <th>文件类型</th>
+                            <th>状态</th>
+                            <th>描述</th>
+                            <th>使用次数</th>
+                            <th>最后使用</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var signature in Model.FileSignatures)
+                        {
+                            <tr>
+                                <td>@signature.Signature</td>
+                                <td>@signature.FileType</td>
+                                <td>
+                                    @if (signature.IsWhitelisted)
+                                    {
+                                        <span class="badge badge-success">白名单</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge badge-danger">黑名单</span>
+                                    }
+                                </td>
+                                <td>@signature.Description</td>
+                                <td>@signature.UseCount</td>
+                                <td>@(signature.LastUsedAt?.ToString("yyyy-MM-dd HH:mm:ss") ?? "-")</td>
+                                <td>
+                                    <button class="btn btn-sm btn-info" onclick="editSignature(@signature.Id)">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    @if (signature.IsWhitelisted)
+                                    {
+                                        <button class="btn btn-sm btn-warning" onclick="toggleStatus(@signature.Id, false)">
+                                            <i class="fas fa-ban"></i>
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <button class="btn btn-sm btn-success" onclick="toggleStatus(@signature.Id, true)">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                    }
+                                    <button class="btn btn-sm btn-danger" onclick="deleteSignature(@signature.Id)">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 分页 -->
+            @if (Model.TotalPages > 1)
+            {
+                <div class="d-flex justify-content-between align-items-center mt-4">
+                    <div>
+                        显示 @(((Model.CurrentPage - 1) * Model.PageSize) + 1) 到 
+                        @(Math.Min(Model.CurrentPage * Model.PageSize, Model.TotalItems)) 条，
+                        共 @Model.TotalItems 条记录
+                    </div>
+                    <nav>
+                        <ul class="pagination">
+                            <li class="page-item @(Model.CurrentPage == 1 ? "disabled" : "")">
+                                <a class="page-link" href="@Model.GetPageUrl(1)">首页</a>
+                            </li>
+                            <li class="page-item @(Model.CurrentPage == 1 ? "disabled" : "")">
+                                <a class="page-link" href="@Model.GetPageUrl(Model.CurrentPage - 1)">上一页</a>
+                            </li>
+                            @for (int i = Math.Max(1, Model.CurrentPage - 2); i <= Math.Min(Model.TotalPages, Model.CurrentPage + 2); i++)
+                            {
+                                <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
+                                    <a class="page-link" href="@Model.GetPageUrl(i)">@i</a>
+                                </li>
+                            }
+                            <li class="page-item @(Model.CurrentPage == Model.TotalPages ? "disabled" : "")">
+                                <a class="page-link" href="@Model.GetPageUrl(Model.CurrentPage + 1)">下一页</a>
+                            </li>
+                            <li class="page-item @(Model.CurrentPage == Model.TotalPages ? "disabled" : "")">
+                                <a class="page-link" href="@Model.GetPageUrl(Model.TotalPages)">末页</a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- 添加签名模态框 -->
+<div class="modal fade" id="addSignatureModal" tabindex="-1" role="dialog" aria-labelledby="addSignatureModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addSignatureModalLabel">添加文件签名</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="addSignatureForm" onsubmit="return addSignature(event)">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="newSignature">签名</label>
+                        <input type="text" class="form-control" id="newSignature" name="signature" required
+                               placeholder="输入文件签名">
+                    </div>
+                    <div class="form-group">
+                        <label for="newFileType">文件类型</label>
+                        <select class="form-control" id="newFileType" name="fileType" required>
+                            @foreach (var fileType in Model.FileTypes)
+                            {
+                                <option value="@fileType">@fileType</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <div class="custom-control custom-checkbox">
+                            <input type="checkbox" class="custom-control-input" id="newIsWhitelisted" name="isWhitelisted">
+                            <label class="custom-control-label" for="newIsWhitelisted">加入白名单</label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="newDescription">描述</label>
+                        <textarea class="form-control" id="newDescription" name="description" rows="3"
+                                  placeholder="输入描述信息"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">确定添加</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 编辑签名模态框 -->
+<div class="modal fade" id="editSignatureModal" tabindex="-1" role="dialog" aria-labelledby="editSignatureModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editSignatureModalLabel">编辑文件签名</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="editSignatureForm" onsubmit="return updateSignature(event)">
+                <input type="hidden" id="editId" name="id">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="editSignature">签名</label>
+                        <input type="text" class="form-control" id="editSignature" name="signature" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editFileType">文件类型</label>
+                        <select class="form-control" id="editFileType" name="fileType" required>
+                            @foreach (var fileType in Model.FileTypes)
+                            {
+                                <option value="@fileType">@fileType</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <div class="custom-control custom-checkbox">
+                            <input type="checkbox" class="custom-control-input" id="editIsWhitelisted" name="isWhitelisted">
+                            <label class="custom-control-label" for="editIsWhitelisted">加入白名单</label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="editDescription">描述</label>
+                        <textarea class="form-control" id="editDescription" name="description" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">保存修改</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 导入签名模态框 -->
+<div class="modal fade" id="importModal" tabindex="-1" role="dialog" aria-labelledby="importModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="importModalLabel">导入文件签名</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="importForm" onsubmit="return importSignatureList(event)">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="importFile">选择文件</label>
+                        <input type="file" class="form-control-file" id="importFile" name="file" required
+                               accept=".txt,.csv,.xlsx">
+                        <small class="form-text text-muted">
+                            支持的文件格式：TXT（每行一个签名）、CSV、Excel
+                        </small>
+                    </div>
+                    <div class="form-group">
+                        <label for="importFileType">默认文件类型</label>
+                        <select class="form-control" id="importFileType" name="fileType" required>
+                            @foreach (var fileType in Model.FileTypes)
+                            {
+                                <option value="@fileType">@fileType</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <div class="custom-control custom-checkbox">
+                            <input type="checkbox" class="custom-control-input" id="importIsWhitelisted" name="isWhitelisted">
+                            <label class="custom-control-label" for="importIsWhitelisted">加入白名单</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">开始导入</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // 添加签名
+        function addSignature(event) {
+            event.preventDefault();
+            const form = event.target;
+            const data = {
+                signature: form.signature.value,
+                fileType: form.fileType.value,
+                isWhitelisted: form.isWhitelisted.checked,
+                description: form.description.value
+            };
+
+            fetch('/api/security/filesignatures', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    alert('签名添加成功');
+                    location.reload();
+                } else {
+                    alert('签名添加失败：' + result.message);
+                }
+            })
+            .catch(error => {
+                alert('操作失败：' + error.message);
+            });
+
+            return false;
+        }
+
+        // 编辑签名
+        function editSignature(id) {
+            fetch('/api/security/filesignatures/' + id)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('editId').value = data.id;
+                    document.getElementById('editSignature').value = data.signature;
+                    document.getElementById('editFileType').value = data.fileType;
+                    document.getElementById('editIsWhitelisted').checked = data.isWhitelisted;
+                    document.getElementById('editDescription').value = data.description;
+                    $('#editSignatureModal').modal('show');
+                })
+                .catch(error => {
+                    alert('获取签名信息失败：' + error.message);
+                });
+        }
+
+        // 更新签名
+        function updateSignature(event) {
+            event.preventDefault();
+            const form = event.target;
+            const data = {
+                id: parseInt(form.id.value),
+                signature: form.signature.value,
+                fileType: form.fileType.value,
+                isWhitelisted: form.isWhitelisted.checked,
+                description: form.description.value
+            };
+
+            fetch('/api/security/filesignatures/' + data.id, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    alert('签名更新成功');
+                    location.reload();
+                } else {
+                    alert('签名更新失败：' + result.message);
+                }
+            })
+            .catch(error => {
+                alert('操作失败：' + error.message);
+            });
+
+            return false;
+        }
+
+        // 切换状态
+        function toggleStatus(id, whitelist) {
+            const action = whitelist ? 'whitelist' : 'blacklist';
+            fetch('/api/security/filesignatures/' + id + '/' + action, {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    location.reload();
+                } else {
+                    alert('操作失败：' + result.message);
+                }
+            })
+            .catch(error => {
+                alert('操作失败：' + error.message);
+            });
+        }
+
+        // 删除签名
+        function deleteSignature(id) {
+            if (confirm('确定要删除这个签名吗？')) {
+                fetch('/api/security/filesignatures/' + id, {
+                    method: 'DELETE'
+                })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        alert('签名删除成功');
+                        location.reload();
+                    } else {
+                        alert('签名删除失败：' + result.message);
+                    }
+                })
+                .catch(error => {
+                    alert('操作失败：' + error.message);
+                });
+            }
+        }
+
+        // 导入签名
+        function importSignatures() {
+            $('#importModal').modal('show');
+        }
+
+        function importSignatureList(event) {
+            event.preventDefault();
+            const form = event.target;
+            const formData = new FormData();
+            formData.append('file', form.file.files[0]);
+            formData.append('fileType', form.fileType.value);
+            formData.append('isWhitelisted', form.isWhitelisted.checked);
+
+            fetch('/api/security/filesignatures/import', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    alert('导入成功：共导入 ' + result.count + ' 个签名');
+                    location.reload();
+                } else {
+                    alert('导入失败：' + result.message);
+                }
+            })
+            .catch(error => {
+                alert('操作失败：' + error.message);
+            });
+
+            return false;
+        }
+    </script>
+} 

@@ -1,0 +1,172 @@
+@model ZhihuClone.Web.Models.Post.PostViewModel
+
+@{
+    ViewData["Title"] = Model.Title;
+}
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <img src="@Model.UserAvatar" alt="@Model.UserName" class="rounded-circle me-2" style="width: 40px; height: 40px;">
+                        <div>
+                            <h6 class="mb-0">@Model.UserName</h6>
+                            @if (!string.IsNullOrEmpty(Model.UserTitle))
+                            {
+                                <small class="text-muted">@Model.UserTitle</small>
+                            }
+                        </div>
+                    </div>
+
+                    <h1 class="card-title">@Model.Title</h1>
+                    
+                    <div class="text-muted small mb-3">
+                        <span class="me-3">发布于 @Model.CreatedAt.ToString("yyyy-MM-dd HH:mm")</span>
+                        @if (Model.UpdatedAt.HasValue)
+                        {
+                            <span>更新于 @Model.UpdatedAt.Value.ToString("yyyy-MM-dd HH:mm")</span>
+                        }
+                    </div>
+
+                    <div class="card-text mb-4">
+                        @Html.Raw(Model.Content)
+                    </div>
+
+                    @if (Model.Topics.Any())
+                    {
+                        <div class="mb-3">
+                            @foreach (var topic in Model.Topics)
+                            {
+                                <a href="/topic/@topic" class="badge bg-light text-dark text-decoration-none me-1">@topic</a>
+                            }
+                        </div>
+                    }
+
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="text-muted small">
+                            <span class="me-3"><i class="bi bi-eye"></i> @Model.ViewCount</span>
+                            <button class="btn btn-link text-decoration-none p-0 me-3 @(Model.IsLiked ? "text-danger" : "text-muted")" 
+                                    data-post-id="@Model.Id">
+                                <i class="bi bi-heart@(Model.IsLiked ? "-fill" : "")"></i>
+                                <span class="like-count">@Model.LikeCount</span>
+                            </button>
+                            <span><i class="bi bi-chat"></i> @Model.CommentCount</span>
+                        </div>
+                        
+                        @if (User.Identity?.Name == Model.UserName)
+                        {
+                            <div>
+                                <a href="/post/edit/@Model.Id" class="btn btn-outline-primary btn-sm">编辑</a>
+                                <button class="btn btn-outline-danger btn-sm" onclick="deletePost(@Model.Id)">删除</button>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-4">
+                <div class="card-body">
+                    <h5 class="card-title mb-4">评论 (@Model.CommentCount)</h5>
+                    
+                    @if (User.Identity?.IsAuthenticated == true)
+                    {
+                        <form id="commentForm" class="mb-4">
+                            <div class="mb-3">
+                                <textarea class="form-control" id="commentContent" rows="3" placeholder="写下你的评论..."></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary">发表评论</button>
+                        </form>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info">
+                            请<a href="/account/login">登录</a>后发表评论
+                        </div>
+                    }
+
+                    <div id="commentList">
+                        @await Html.PartialAsync("_CommentPartial", Model.Comments)
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">相关文章</h5>
+                    @if (ViewBag.RelatedPosts != null)
+                    {
+                        <div class="list-group list-group-flush">
+                            @foreach (var post in ViewBag.RelatedPosts)
+                            {
+                                <a href="/post/@post.Id" class="list-group-item list-group-item-action">
+                                    <h6 class="mb-1">@post.Title</h6>
+                                    <small class="text-muted">@post.CreatedAt.ToString("yyyy-MM-dd")</small>
+                                </a>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // 点赞功能
+            $('[data-post-id]').click(function() {
+                var postId = $(this).data('post-id');
+                var btn = $(this);
+                
+                $.post('/api/posts/' + postId + '/like', function(data) {
+                    if (data.success) {
+                        var count = parseInt(btn.find('.like-count').text());
+                        if (data.isLiked) {
+                            btn.addClass('text-danger').removeClass('text-muted');
+                            btn.find('.bi').removeClass('bi-heart').addClass('bi-heart-fill');
+                            btn.find('.like-count').text(count + 1);
+                        } else {
+                            btn.removeClass('text-danger').addClass('text-muted');
+                            btn.find('.bi').removeClass('bi-heart-fill').addClass('bi-heart');
+                            btn.find('.like-count').text(count - 1);
+                        }
+                    }
+                });
+            });
+
+            // 评论功能
+            $('#commentForm').submit(function(e) {
+                e.preventDefault();
+                var content = $('#commentContent').val();
+                
+                $.post('/api/posts/@Model.Id/comments', { content: content }, function(data) {
+                    if (data.success) {
+                        $('#commentContent').val('');
+                        // 刷新评论列表
+                        $('#commentList').load('/post/@Model.Id/comments');
+                    }
+                });
+            });
+
+            // 删除文章
+            window.deletePost = function(postId) {
+                if (confirm('确定要删除这篇文章吗？')) {
+                    $.ajax({
+                        url: '/api/posts/' + postId,
+                        type: 'DELETE',
+                        success: function(data) {
+                            if (data.success) {
+                                window.location.href = '/';
+                            }
+                        }
+                    });
+                }
+            };
+        });
+    </script>
+} 

@@ -1,0 +1,149 @@
+@model List<ZhihuClone.Core.Models.Collection>
+
+@if (Model.Any())
+{
+    <div class="row">
+        @foreach (var collection in Model)
+        {
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <a href="/collection/@collection.Id" class="text-decoration-none text-dark">
+                                @collection.Name
+                            </a>
+                        </h5>
+                        <p class="card-text text-muted small">@collection.Description</p>
+                        <div class="d-flex align-items-center text-muted small mb-3">
+                            <span class="me-3">
+                                <i class="far fa-file-alt"></i>
+                                @collection.Posts.Count 篇文章
+                            </span>
+                            <span>
+                                <i class="far fa-user"></i>
+                                @collection.Followers.Count 人关注
+                            </span>
+                        </div>
+                        <div class="collection-preview">
+                            @if (collection.Posts.Any())
+                            {
+                                <div class="list-group list-group-flush">
+                                    @foreach (var post in collection.Posts.Take(3))
+                                    {
+                                        <a href="/post/@post.Id" class="list-group-item list-group-item-action px-0">
+                                            <div class="d-flex w-100 justify-content-between">
+                                                <h6 class="mb-1 text-truncate">@post.Title</h6>
+                                                <small>@post.CreatedAt.ToString("MM-dd")</small>
+                                            </div>
+                                        </a>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <p class="text-muted small mb-0">暂无收藏的文章</p>
+                            }
+                        </div>
+                    </div>
+                    <div class="card-footer bg-transparent">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">
+                                创建于 @collection.CreatedAt.ToString("yyyy-MM-dd")
+                            </small>
+                            @if (collection.IsPublic)
+                            {
+                                <span class="badge bg-success">公开</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">私密</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    @if (Model.Count >= 10)
+    {
+        <div class="text-center mt-4">
+            <button class="btn btn-outline-primary" onclick="loadMoreCollections()">
+                加载更多
+            </button>
+        </div>
+    }
+}
+else
+{
+    <div class="text-center text-muted py-5">
+        <i class="fas fa-star fa-3x mb-3"></i>
+        <p>暂无收藏夹</p>
+        <button class="btn btn-primary btn-sm" onclick="createCollection()">
+            <i class="fas fa-plus"></i> 创建收藏夹
+        </button>
+    </div>
+}
+
+<!-- 创建收藏夹模态框 -->
+<div class="modal fade" id="createCollectionModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">创建收藏夹</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="createCollectionForm">
+                    <div class="mb-3">
+                        <label class="form-label">名称</label>
+                        <input type="text" class="form-control" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">描述</label>
+                        <textarea class="form-control" name="description" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="isPublic" id="isPublic" checked>
+                            <label class="form-check-label" for="isPublic">
+                                公开收藏夹
+                            </label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="saveCollection()">创建</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function createCollection() {
+        $('#createCollectionModal').modal('show');
+    }
+
+    function saveCollection() {
+        const form = document.getElementById('createCollectionForm');
+        const formData = new FormData(form);
+
+        fetch('/api/collections', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                name: formData.get('name'),
+                description: formData.get('description'),
+                isPublic: formData.get('isPublic') === 'on'
+            })
+        }).then(response => {
+            if (response.ok) {
+                location.reload();
+            }
+        });
+    }
+</script> 

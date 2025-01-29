@@ -1,0 +1,75 @@
+@model ZhihuClone.Web.Models.Post.CreatePostViewModel
+
+@{
+    ViewData["Title"] = "写文章";
+}
+
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <h2 class="mb-4">@ViewData["Title"]</h2>
+            <form asp-action="Create" enctype="multipart/form-data">
+                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                <div class="form-group mb-3">
+                    <label asp-for="Title" class="form-label"></label>
+                    <input asp-for="Title" class="form-control" />
+                    <span asp-validation-for="Title" class="text-danger"></span>
+                </div>
+                <div class="form-group mb-3">
+                    <label asp-for="Content" class="form-label"></label>
+                    <textarea asp-for="Content" class="form-control" rows="10"></textarea>
+                    <span asp-validation-for="Content" class="text-danger"></span>
+                </div>
+                <div class="form-group mb-3">
+                    <label asp-for="MediaFiles" class="form-label"></label>
+                    <input asp-for="MediaFiles" type="file" class="form-control" multiple accept="image/*,video/*" />
+                    <span asp-validation-for="MediaFiles" class="text-danger"></span>
+                </div>
+                <div class="form-group mb-3">
+                    <div class="form-check">
+                        <input asp-for="IsAnonymous" class="form-check-input" />
+                        <label asp-for="IsAnonymous" class="form-check-label"></label>
+                    </div>
+                </div>
+                <div class="form-group mb-3">
+                    <button type="submit" class="btn btn-primary">发布</button>
+                    <a asp-action="Index" asp-controller="Home" class="btn btn-secondary">取消</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        // 预览上传的图片和视频
+        document.querySelector('input[type="file"]').addEventListener('change', function(e) {
+            const preview = document.getElementById('media-preview') || document.createElement('div');
+            preview.id = 'media-preview';
+            preview.innerHTML = '';
+            preview.className = 'mt-3';
+            
+            Array.from(e.target.files).forEach(file => {
+                if (file.type.startsWith('image/')) {
+                    const img = document.createElement('img');
+                    img.src = URL.createObjectURL(file);
+                    img.className = 'img-thumbnail me-2 mb-2';
+                    img.style.maxHeight = '200px';
+                    preview.appendChild(img);
+                } else if (file.type.startsWith('video/')) {
+                    const video = document.createElement('video');
+                    video.src = URL.createObjectURL(file);
+                    video.className = 'me-2 mb-2';
+                    video.style.maxHeight = '200px';
+                    video.controls = true;
+                    preview.appendChild(video);
+                }
+            });
+            
+            if (!document.getElementById('media-preview')) {
+                e.target.parentElement.appendChild(preview);
+            }
+        });
+    </script>
+} 

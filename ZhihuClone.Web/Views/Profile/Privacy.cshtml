@@ -1,0 +1,104 @@
+@model ZhihuClone.Web.Models.User.PrivacySettingsViewModel
+@{
+    ViewData["Title"] = "隐私设置";
+}
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="list-group list-group-flush">
+                    <a href="/settings" class="list-group-item list-group-item-action">个人资料</a>
+                    <a href="/settings/security" class="list-group-item list-group-item-action">账号安全</a>
+                    <a href="/settings/privacy" class="list-group-item list-group-item-action active">隐私设置</a>
+                    <a href="/settings/notification" class="list-group-item list-group-item-action">消息通知</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-9">
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h5 class="card-title mb-0">隐私设置</h5>
+                </div>
+
+                <div class="card-body">
+                    <form id="privacyForm" method="post" asp-action="SavePrivacy">
+                        @Html.AntiForgeryToken()
+                        <div class="alert alert-success" id="successMessage" style="display: none;"></div>
+                        <div class="alert alert-danger" id="errorMessage" style="display: none;"></div>
+
+                        <h6 class="mb-3">个人信息可见性</h6>
+                        <div class="mb-4">
+                            <div class="form-check mb-2">
+                                <input asp-for="ShowEmail" class="form-check-input" type="checkbox">
+                                <label asp-for="ShowEmail" class="form-check-label">显示邮箱</label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input asp-for="ShowPhone" class="form-check-input" type="checkbox">
+                                <label asp-for="ShowPhone" class="form-check-label">显示手机号</label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input asp-for="ShowLocation" class="form-check-input" type="checkbox">
+                                <label asp-for="ShowLocation" class="form-check-label">显示所在地</label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input asp-for="ShowCompany" class="form-check-input" type="checkbox">
+                                <label asp-for="ShowCompany" class="form-check-label">显示公司信息</label>
+                            </div>
+                        </div>
+
+                        <h6 class="mb-3">互动权限</h6>
+                        <div class="mb-4">
+                            <div class="form-check mb-2">
+                                <input asp-for="AllowFollow" class="form-check-input" type="checkbox">
+                                <label asp-for="AllowFollow" class="form-check-label">允许他人关注</label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input asp-for="AllowDirectMessage" class="form-check-input" type="checkbox">
+                                <label asp-for="AllowDirectMessage" class="form-check-label">允许私信</label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input asp-for="AllowNotification" class="form-check-input" type="checkbox">
+                                <label asp-for="AllowNotification" class="form-check-label">允许通知</label>
+                            </div>
+                        </div>
+
+                        <div class="text-end">
+                            <button type="submit" class="btn btn-primary">保存设置</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            $('#privacyForm').on('submit', function (e) {
+                e.preventDefault();
+                
+                var form = $(this);
+                $.ajax({
+                    url: '@Url.Action("SavePrivacy", "Profile")',
+                    type: 'POST',
+                    data: form.serialize(),
+                    success: function (response) {
+                        $('#errorMessage').hide();
+                        $('#successMessage').text('设置已保存').show();
+                        setTimeout(function() {
+                            $('#successMessage').fadeOut();
+                        }, 3000);
+                    },
+                    error: function (xhr) {
+                        var error = xhr.responseJSON;
+                        $('#successMessage').hide();
+                        $('#errorMessage').text(error.error || '保存失败，请重试').show();
+                    }
+                });
+            });
+        });
+    </script>
+} 

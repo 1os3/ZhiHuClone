@@ -1,0 +1,317 @@
+@model ZhihuClone.Web.Models.User.UserProfileViewModel
+@{
+    ViewData["Title"] = $"{Model.UserName}的个人主页";
+}
+
+<div class="container mt-4">
+    <div class="row">
+        <!-- 左侧个人资料卡片 -->
+        <div class="col-md-3">
+            <div class="card shadow-sm">
+                <div class="card-body text-center">
+                    <div class="position-relative mb-3">
+                        <img src="@Model.Avatar" alt="@Model.UserName" class="rounded-circle" width="120" height="120">
+                        @if (Model.IsCurrentUser)
+                        {
+                            <button class="btn btn-sm btn-light position-absolute bottom-0 end-0" onclick="changeAvatar()">
+                                <i class="fas fa-camera"></i>
+                            </button>
+                        }
+                    </div>
+                    <h5 class="card-title mb-1">@Model.UserName</h5>
+                    <p class="text-muted small mb-3">@Model.Bio</p>
+                    
+                    @if (Model.IsCurrentUser)
+                    {
+                        <button class="btn btn-outline-primary btn-sm w-100 mb-2" onclick="editProfile()">
+                            <i class="fas fa-edit"></i> 编辑资料
+                        </button>
+                    }
+                    else
+                    {
+                        <button class="btn btn-primary btn-sm w-100 mb-2 @(Model.IsFollowing ? "active" : "")" 
+                                onclick="toggleFollow(@Model.Id)">
+                            <i class="fas @(Model.IsFollowing ? "fa-user-minus" : "fa-user-plus")"></i>
+                            @(Model.IsFollowing ? "取消关注" : "关注")
+                        </button>
+                    }
+
+                    <div class="row text-center mt-3">
+                        <div class="col">
+                            <a href="#" class="text-decoration-none" data-bs-toggle="modal" data-bs-target="#followingModal">
+                                <div class="fw-bold text-dark">@Model.FollowingCount</div>
+                                <div class="text-muted small">关注</div>
+                            </a>
+                        </div>
+                        <div class="col">
+                            <a href="#" class="text-decoration-none" data-bs-toggle="modal" data-bs-target="#followersModal">
+                                <div class="fw-bold text-dark">@Model.FollowersCount</div>
+                                <div class="text-muted small">粉丝</div>
+                            </a>
+                        </div>
+                        <div class="col">
+                            <a href="#" class="text-decoration-none">
+                                <div class="fw-bold text-dark">@Model.PostCount</div>
+                                <div class="text-muted small">文章</div>
+                            </a>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <div class="text-start">
+                        <div class="mb-2">
+                            <i class="fas fa-map-marker-alt text-muted me-2"></i>
+                            <span>@(string.IsNullOrEmpty(Model.Location) ? "未设置" : Model.Location)</span>
+                        </div>
+                        <div class="mb-2">
+                            <i class="fas fa-briefcase text-muted me-2"></i>
+                            <span>@(string.IsNullOrEmpty(Model.Occupation) ? "未设置" : Model.Occupation)</span>
+                        </div>
+                        <div class="mb-2">
+                            <i class="fas fa-calendar-alt text-muted me-2"></i>
+                            <span>@Model.JoinDate.ToString("yyyy年MM月dd日")加入</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右侧内容区域 -->
+        <div class="col-md-9">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <ul class="nav nav-tabs card-header-tabs">
+                        <li class="nav-item">
+                            <a class="nav-link active" href="#posts" data-bs-toggle="tab">
+                                <i class="fas fa-file-alt"></i> 文章
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#answers" data-bs-toggle="tab">
+                                <i class="fas fa-comment-alt"></i> 回答
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#collections" data-bs-toggle="tab">
+                                <i class="fas fa-star"></i> 收藏
+                            </a>
+                        </li>
+                        @if (Model.IsCurrentUser)
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" href="#search-history" data-bs-toggle="tab">
+                                    <i class="fas fa-history"></i> 搜索历史
+                                </a>
+                            </li>
+                        }
+                    </ul>
+                </div>
+                <div class="card-body">
+                    <div class="tab-content">
+                        <div class="tab-pane fade show active" id="posts">
+                            <partial name="_UserPostsPartial" model="Model.Posts" />
+                        </div>
+                        <div class="tab-pane fade" id="answers">
+                            <partial name="_UserAnswersPartial" model="Model.Answers" />
+                        </div>
+                        <div class="tab-pane fade" id="collections">
+                            <partial name="_UserCollectionsPartial" model="Model.Collections" />
+                        </div>
+                        @if (Model.IsCurrentUser)
+                        {
+                            <div class="tab-pane fade" id="search-history">
+                                <partial name="_UserSearchHistoryPartial" model="Model.SearchHistories" />
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 编辑资料模态框 -->
+<div class="modal fade" id="editProfileModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">编辑个人资料</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editProfileForm">
+                    <div class="mb-3">
+                        <label class="form-label">用户名</label>
+                        <input type="text" class="form-control" name="username" value="@Model.UserName">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">个人简介</label>
+                        <textarea class="form-control" name="bio" rows="3">@Model.Bio</textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">所在地</label>
+                        <input type="text" class="form-control" name="location" value="@Model.Location">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">职业</label>
+                        <input type="text" class="form-control" name="occupation" value="@Model.Occupation">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="saveProfile()">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 关注列表模态框 -->
+<div class="modal fade" id="followingModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">关注列表</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="followingList" class="list-group list-group-flush">
+                    <!-- 关注列表将通过JavaScript动态加载 -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 粉丝列表模态框 -->
+<div class="modal fade" id="followersModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">粉丝列表</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="followersList" class="list-group list-group-flush">
+                    <!-- 粉丝列表将通过JavaScript动态加载 -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // 编辑个人资料
+        function editProfile() {
+            $('#editProfileModal').modal('show');
+        }
+
+        // 保存个人资料
+        function saveProfile() {
+            const form = document.getElementById('editProfileForm');
+            const formData = new FormData(form);
+
+            fetch('/api/user/profile', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(Object.fromEntries(formData))
+            }).then(response => {
+                if (response.ok) {
+                    location.reload();
+                }
+            });
+        }
+
+        // 更换头像
+        function changeAvatar() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.onchange = function(e) {
+                const file = e.target.files[0];
+                const formData = new FormData();
+                formData.append('avatar', file);
+
+                fetch('/api/user/avatar', {
+                    method: 'POST',
+                    body: formData
+                }).then(response => {
+                    if (response.ok) {
+                        location.reload();
+                    }
+                });
+            };
+            input.click();
+        }
+
+        // 关注/取消关注
+        function toggleFollow(userId) {
+            fetch(`/api/user/${userId}/follow`, {
+                method: 'POST'
+            }).then(response => {
+                if (response.ok) {
+                    location.reload();
+                }
+            });
+        }
+
+        // 加载关注列表
+        function loadFollowing() {
+            fetch(`/api/user/@Model.Id/following`)
+                .then(response => response.json())
+                .then(data => {
+                    const list = document.getElementById('followingList');
+                    list.innerHTML = data.map(user => `
+                        <a href="/user/${user.id}" class="list-group-item list-group-item-action">
+                            <div class="d-flex align-items-center">
+                                <img src="${user.avatar}" class="rounded-circle me-2" width="32" height="32">
+                                <div>
+                                    <h6 class="mb-0">${user.username}</h6>
+                                    <small class="text-muted">${user.bio || '这个人很懒，什么都没写'}</small>
+                                </div>
+                            </div>
+                        </a>
+                    `).join('');
+                });
+        }
+
+        // 加载粉丝列表
+        function loadFollowers() {
+            fetch(`/api/user/@Model.Id/followers`)
+                .then(response => response.json())
+                .then(data => {
+                    const list = document.getElementById('followersList');
+                    list.innerHTML = data.map(user => `
+                        <a href="/user/${user.id}" class="list-group-item list-group-item-action">
+                            <div class="d-flex align-items-center">
+                                <img src="${user.avatar}" class="rounded-circle me-2" width="32" height="32">
+                                <div>
+                                    <h6 class="mb-0">${user.username}</h6>
+                                    <small class="text-muted">${user.bio || '这个人很懒，什么都没写'}</small>
+                                </div>
+                            </div>
+                        </a>
+                    `).join('');
+                });
+        }
+
+        // 监听模态框事件
+        $('#followingModal').on('show.bs.modal', loadFollowing);
+        $('#followersModal').on('show.bs.modal', loadFollowers);
+
+        // 初始化标签页
+        document.addEventListener('DOMContentLoaded', function() {
+            const hash = window.location.hash;
+            if (hash) {
+                const tab = document.querySelector(`a[href="${hash}"]`);
+                if (tab) {
+                    new bootstrap.Tab(tab).show();
+                }
+            }
+        });
+    </script>
+} 

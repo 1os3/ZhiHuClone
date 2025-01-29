@@ -1,0 +1,112 @@
+@model ZhihuClone.Web.Models.User.SecuritySettingsViewModel
+@{
+    ViewData["Title"] = "账号安全";
+}
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="list-group list-group-flush">
+                    <a href="/settings" class="list-group-item list-group-item-action">个人资料</a>
+                    <a href="/settings/security" class="list-group-item list-group-item-action active">账号安全</a>
+                    <a href="/settings/privacy" class="list-group-item list-group-item-action">隐私设置</a>
+                    <a href="/settings/notification" class="list-group-item list-group-item-action">消息通知</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-9">
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h5 class="card-title mb-0">账号安全</h5>
+                </div>
+
+                <div class="card-body">
+                    <div class="mb-4">
+                        <h6 class="mb-3">登录密码</h6>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <p class="mb-0">用于保护账号信息安全</p>
+                                <small class="text-muted">上次登录时间：@Model.LastLoginTime.ToString("yyyy-MM-dd HH:mm:ss")</small>
+                            </div>
+                            <a asp-action="Password" class="btn btn-outline-primary">
+                                修改密码
+                            </a>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <div class="mb-4">
+                        <h6 class="mb-3">邮箱验证</h6>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <p class="mb-0">@Model.Email</p>
+                                <small class="text-muted">@(Model.IsEmailConfirmed ? "已验证" : "未验证")</small>
+                            </div>
+                            <a asp-action="UnderDevelopment" class="btn btn-outline-primary">
+                                验证邮箱
+                            </a>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <div class="mb-4">
+                        <h6 class="mb-3">手机验证</h6>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <p class="mb-0">@(string.IsNullOrEmpty(Model.PhoneNumber) ? "未绑定手机号" : Model.PhoneNumber)</p>
+                                <small class="text-muted">@(Model.IsPhoneConfirmed ? "已验证" : "未验证")</small>
+                            </div>
+                            <a asp-action="UnderDevelopment" class="btn btn-outline-primary">
+                                绑定手机
+                            </a>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <div class="mb-4">
+                        <h6 class="mb-3">两步验证</h6>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <p class="mb-0">@(Model.IsTwoFactorEnabled ? "已开启" : "未开启")</p>
+                                <small class="text-muted">开启后，登录时需要额外验证</small>
+                            </div>
+                            <a asp-action="UnderDevelopment" class="btn btn-outline-primary">
+                                @(Model.IsTwoFactorEnabled ? "关闭" : "开启")
+                            </a>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <div class="mb-4">
+                        <h6 class="mb-3 text-danger">注销账号</h6>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <p class="mb-0">永久注销账号</p>
+                                <small class="text-muted">注销后，账号将无法恢复</small>
+                            </div>
+                            <button class="btn btn-outline-danger" onclick="confirmDeleteAccount()">
+                                注销账号
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function confirmDeleteAccount() {
+            if (confirm('确定要注销账号吗？此操作不可恢复！')) {
+                location.href = '/settings/security/delete-account';
+            }
+        }
+    </script>
+} 
